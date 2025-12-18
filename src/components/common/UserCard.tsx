@@ -21,6 +21,7 @@ export function UserCard({ user }: { user: IUser }) {
 
   const handleAddFriend = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!dbUser) {
       toast({ title: "Please login", description: "You need to be logged in to add friends." });
       return;
@@ -47,44 +48,46 @@ export function UserCard({ user }: { user: IUser }) {
 
   const renderFriendButton = () => {
     if (isSubmitting || loading) {
-      return <Button size="sm" className="flex-1" disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</Button>;
+      return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</Button>;
     }
 
     switch (friendStatus) {
       case 'friends':
-        return <Button size="sm" className="flex-1" disabled><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
+        return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
       case 'sent':
-        return <Button size="sm" variant="secondary" className="flex-1" disabled>Request Sent</Button>;
+        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}>Request Sent</Button>;
       case 'received':
-        return <Button size="sm" asChild className="flex-1"><Link href="/friends">Respond</Link></Button>;
+        return <Button size="sm" asChild className="flex-1" onClick={(e) => e.stopPropagation()}><Link href="/friends">Respond</Link></Button>;
       default:
         return <Button size="sm" className="flex-1" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
     }
   };
 
   return (
-    <Link href={`/profile/${user._id.toString()}`}>
-        <Card className="flex flex-col items-center justify-center p-4 text-center h-full transition-all hover:shadow-lg hover:border-primary">
-        <CardHeader className="p-2">
-            <Avatar className="w-24 h-24 mx-auto border-4 border-primary">
+    <Card className="flex flex-col items-center justify-center p-4 text-center h-full transition-all hover:shadow-lg hover:border-primary">
+      <CardHeader className="p-2">
+        <Link href={`/profile/${user._id.toString()}`}>
+          <Avatar className="w-24 h-24 mx-auto border-4 border-primary">
             <AvatarImage src={user.photoUrl} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-        </CardHeader>
-        <CardContent className="p-2 space-y-2 flex-grow">
-            <h3 className="font-bold text-lg">{user.name}</h3>
-            <p className="text-sm text-muted-foreground">{user.university}</p>
-            <p className="text-xs text-muted-foreground">{user.major}</p>
-        </CardContent>
-        <div className="flex w-full gap-2 mt-4">
-            {dbUser?.uid !== user.uid && renderFriendButton()}
-            <Button size="sm" variant="outline" className="flex-1" asChild>
-                <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
-                    <MessageSquare className="mr-2 h-4 w-4" /> Message
-                </Link>
-            </Button>
-        </div>
-        </Card>
-    </Link>
+          </Avatar>
+        </Link>
+      </CardHeader>
+      <CardContent className="p-2 space-y-2 flex-grow">
+        <Link href={`/profile/${user._id.toString()}`}>
+            <h3 className="font-bold text-lg hover:underline">{user.name}</h3>
+        </Link>
+        <p className="text-sm text-muted-foreground">{user.university}</p>
+        <p className="text-xs text-muted-foreground">{user.major}</p>
+      </CardContent>
+      <div className="flex w-full gap-2 mt-4">
+        {dbUser?.uid !== user.uid && renderFriendButton()}
+        <Button size="sm" variant="outline" className="flex-1" asChild>
+            <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
+                <MessageSquare className="mr-2 h-4 w-4" /> Message
+            </Link>
+        </Button>
+      </div>
+    </Card>
   );
 }
