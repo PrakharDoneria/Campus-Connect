@@ -1,3 +1,4 @@
+
 import type { ObjectId } from 'mongodb';
 
 export type Gender = 'male' | 'female' | 'other';
@@ -19,6 +20,7 @@ export interface IUser {
   friends: string[]; // array of UIDs
   friendRequestsSent: string[]; // array of UIDs
   friendRequestsReceived: string[]; // array of UIDs
+  blockedUsers: string[]; // array of UIDs
 }
 
 export interface PostAuthor {

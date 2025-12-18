@@ -23,6 +23,7 @@ interface AuthContextType {
   signOut: () => void;
   requestNotificationPermission: () => Promise<void>;
   unreadMessagesCount: number;
+  friendRequestCount: number;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: () => {},
   requestNotificationPermission: async () => {},
   unreadMessagesCount: 0,
+  friendRequestCount: 0,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -117,10 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 friends: [],
                 friendRequestsSent: [],
                 friendRequestsReceived: [],
+                blockedUsers: [],
             } as Partial<IUser>;
             mongoUser = await createUser(newUser);
         }
         setDbUser(mongoUser);
+        setFriendRequestCount(mongoUser.friendRequestsReceived?.length || 0);
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
 
@@ -225,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount, friendRequestCount }}>
       {children}
     </AuthContext.Provider>
   );

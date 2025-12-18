@@ -3,20 +3,22 @@
 
 import { useEffect, useState } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { getUser, sendFriendRequest, getUsers } from '@/lib/actions/user.actions';
+import { getUser, sendFriendRequest, getUsers, blockUser } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck } from 'lucide-react';
+import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { useToast } from '@/hooks/use-toast';
 import { FriendCard } from '@/components/common/FriendCard';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+
 
 export default function UserProfilePage() {
   const { user: currentUser, dbUser, loading: authLoading } = useAuth();
@@ -94,8 +96,22 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleBlockUser = async () => {
+    if (!dbUser || !user) return;
+    setIsSubmitting(true);
+    try {
+      await blockUser(dbUser.uid, user.uid);
+      toast({ title: "User Blocked", description: `You have blocked ${user.name}.`, variant: "destructive" });
+      router.push('/feed'); // Redirect after blocking
+    } catch (error) {
+      toast({ title: "Error", description: "Could not block user.", variant: "destructive" });
+      setIsSubmitting(false);
+    }
+  };
+
   const getFriendStatus = () => {
     if (authLoading || !dbUser || !user) return null;
+    if (dbUser.blockedUsers?.includes(user.uid)) return 'blocked';
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
     if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
@@ -110,6 +126,8 @@ export default function UserProfilePage() {
     }
 
     switch (friendStatus) {
+        case 'blocked':
+            return <Button disabled variant="destructive"><ShieldBan className="mr-2 h-4 w-4" /> Blocked</Button>;
         case 'friends':
             return <Button disabled variant="secondary"><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
         case 'sent':
@@ -131,7 +149,7 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!user) {
+  if (!user || dbUser?.blockedUsers?.includes(user.uid)) {
     return notFound();
   }
 
@@ -175,6 +193,19 @@ export default function UserProfilePage() {
                       <MessageSquare className="mr-2 h-4 w-4" /> Message
                     </Link>
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={handleBlockUser} className="text-destructive">
+                        <ShieldBan className="mr-2 h-4 w-4" />
+                        Block User
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
             </div>

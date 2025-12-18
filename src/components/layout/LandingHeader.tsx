@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -45,7 +46,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const { toast } = useToast();
-  const { unreadMessagesCount } = useAuth();
+  const { unreadMessagesCount, friendRequestCount } = useAuth();
 
    const handleInvite = async () => {
     if (onLinkClick) onLinkClick();
@@ -72,7 +73,7 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
     { href: '/nearby', icon: <Compass />, text: 'Nearby' },
-    { href: '/friends', icon: <Users />, text: 'Friends' },
+    { href: '/friends', icon: <Users />, text: 'Friends', badge: friendRequestCount },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
   ];
 

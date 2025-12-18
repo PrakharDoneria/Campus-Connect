@@ -72,6 +72,7 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
     friends: [],
     friendRequestsSent: [],
     friendRequestsReceived: [],
+    blockedUsers: [],
     ...user,
   };
 
@@ -181,4 +182,22 @@ export async function getUsers(uids: string[]): Promise<IUser[]> {
     ...user,
     _id: user._id.toString(),
   })) as IUser[];
+}
+
+export async function blockUser(blockerUid: string, blockedUid: string): Promise<void> {
+    const users = await getUsersCollection();
+    if (blockerUid === blockedUid) {
+        throw new Error("You cannot block yourself.");
+    }
+
+    // Add blocked user to blocker's list
+    await users.updateOne({ uid: blockerUid }, { $addToSet: { blockedUsers: blockedUid } });
+
+    // Remove any relationship
+    await removeFriend(blockerUid, blockedUid);
+    await rejectFriendRequest(blockerUid, blockedUid); // covers requests sent and received
+    await rejectFriendRequest(blockedUid, blockerUid);
+
+    // Optional: add blocker to blocked user's list for two-way blocking
+    // await users.updateOne({ uid: blockedUid }, { $addToSet: { blockedUsers: blockerUid } });
 }
