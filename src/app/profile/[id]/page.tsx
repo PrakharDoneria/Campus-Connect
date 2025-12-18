@@ -162,7 +162,7 @@ export default function UserProfilePage() {
                 <>
                   {renderFriendButton()}
                   <Button variant="outline" asChild disabled={friendStatus !== 'friends'}>
-                    <Link href="/messages">
+                    <Link href={`/messages?with=${user.uid}`}>
                       <MessageSquare className="mr-2 h-4 w-4" /> Message
                     </Link>
                   </Button>
