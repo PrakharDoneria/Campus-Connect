@@ -219,12 +219,16 @@ export default function MessagesPage() {
           {activeConversation && dbUser ? (
             <>
               <CardHeader className="flex flex-row items-center gap-4 p-4 border-b">
-                <Avatar>
-                  <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
-                  <AvatarFallback>{activeConversation.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <Link href={`/profile/${activeConversation._id}`}>
+                  <Avatar>
+                    <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
+                    <AvatarFallback>{activeConversation.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Link>
                 <div className='flex-1'>
-                    <h2 className="text-lg font-bold">{activeConversation.name}</h2>
+                    <Link href={`/profile/${activeConversation._id}`}>
+                        <h2 className="text-lg font-bold hover:underline">{activeConversation.name}</h2>
+                    </Link>
                     <p className='text-xs text-muted-foreground'>Active now</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={handleStartVideoCall}>
@@ -291,4 +295,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
