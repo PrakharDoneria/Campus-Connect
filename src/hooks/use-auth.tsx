@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, messaging, firestore } from '@/lib/firebase';
