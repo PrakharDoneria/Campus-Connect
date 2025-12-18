@@ -5,48 +5,61 @@ import { useAuth } from '@/hooks/use-auth';
 import { PostCard } from '@/components/common/PostCard';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import type { IPost } from '@/types';
+import type { IPost, ICircle } from '@/types';
 import { GraduationCap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getPosts } from '@/lib/actions/post.actions';
+import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function FeedPage() {
-  const { user, dbUser, signOut } = useAuth();
+  const { user, dbUser } = useAuth();
   const [posts, setPosts] = useState<IPost[]>([]);
+  const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
   const isGuest = !user;
 
   useEffect(() => {
-    async function fetchPosts() {
+    async function fetchData() {
       try {
-        const fetchedPosts = await getPosts();
+        const [fetchedPosts, fetchedCircles] = await Promise.all([
+            getPosts(),
+            getCircles()
+        ]);
         setPosts(fetchedPosts);
+        setCircles(fetchedCircles);
       } catch (error) {
-        console.error("Failed to fetch posts:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchPosts();
+    fetchData();
   }, []);
 
   const handlePostCreated = (newPost: IPost) => {
     setPosts(prevPosts => [newPost, ...prevPosts]);
   };
+  
+  const handleCircleCreated = (newCircle: ICircle) => {
+    setCircles(prevCircles => [...prevCircles, newCircle]);
+  }
 
   const postsToShow = isGuest ? posts.slice(0, 4) : posts;
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
-        <header className="flex items-center gap-4 mb-6 md:hidden">
-            
-            <h1 className="text-xl font-bold">Campus Feed</h1>
-        </header>
       
-      {!isGuest && dbUser && <CreatePostForm user={dbUser} onPostCreated={handlePostCreated} />}
+      {!isGuest && dbUser && (
+        <CreatePostForm 
+            user={dbUser} 
+            circles={circles}
+            onPostCreated={handlePostCreated} 
+            onCircleCreated={handleCircleCreated}
+        />
+      )}
 
       <div className="space-y-6 mt-6">
         {loading ? (

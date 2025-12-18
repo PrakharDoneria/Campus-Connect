@@ -30,7 +30,16 @@ export interface IPost {
     _id: string | ObjectId;
     author: PostAuthor;
     content: string;
+    circle: string; // Circle name
     createdAt: Date;
     likes: string[]; // Array of user UIDs
     comments: number; // Keep it simple for now
+}
+
+export interface ICircle {
+  _id: string | ObjectId;
+  name: string;
+  description: string;
+  creatorUid: string;
+  createdAt: Date;
 }

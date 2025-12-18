@@ -11,9 +11,12 @@ async function getPostsCollection(): Promise<Collection<Omit<IPost, '_id'>>> {
   return db.collection<Omit<IPost, '_id'>>('posts');
 }
 
-export async function createPost(content: string, user: IUser): Promise<IPost> {
+export async function createPost(content: string, circle: string, user: IUser): Promise<IPost> {
   if (!user || !user.uid || !user.name || !user.university) {
     throw new Error('User information is missing to create a post.');
+  }
+  if (!circle) {
+    throw new Error('Circle is required to create a post.');
   }
 
   const postsCollection = await getPostsCollection();
@@ -26,6 +29,7 @@ export async function createPost(content: string, user: IUser): Promise<IPost> {
       university: user.university,
     },
     content: content,
+    circle: circle,
     createdAt: new Date(),
     likes: [],
     comments: 0,
