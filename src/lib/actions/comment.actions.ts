@@ -50,18 +50,23 @@ export async function createComment(postId: string, content: string, user: IUser
     { $push: { comments: result.insertedId.toString() } }
   );
 
-  // Send notification
-  const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
-  if (post && post.author.uid !== user.uid) {
-    const author = await getUser(post.author.uid);
-    if (author?.fcmToken) {
-      sendPushNotification({
-        token: author.fcmToken,
-        title: `${user.name} commented on your post`,
-        body: content.substring(0, 100),
-      });
+  // Send notification but don't let it block the response
+  try {
+    const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+    if (post && post.author.uid !== user.uid) {
+      const author = await getUser(post.author.uid);
+      if (author?.fcmToken) {
+        await sendPushNotification({
+          token: author.fcmToken,
+          title: `${user.name} commented on your post`,
+          body: content.substring(0, 100),
+        });
+      }
     }
+  } catch (error) {
+      console.error("Failed to send comment notification, but comment was saved.", error);
   }
+
 
   const createdComment = {
     ...newCommentData,
