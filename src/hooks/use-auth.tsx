@@ -98,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const provider = new GithubAuthProvider();
       await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle the rest
+      // onAuthStateChanged will handle the rest, and redirect to /feed
+      router.push('/feed');
     } catch (error: any) {
       console.error('GitHub sign-in error:', error);
       toast({

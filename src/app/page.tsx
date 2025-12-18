@@ -44,7 +44,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
                   <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Link href="/feed">Join with GitHub</Link>
+                    <Link href="/feed">Go to Feed</Link>
                   </Button>
                 </div>
               </div>
