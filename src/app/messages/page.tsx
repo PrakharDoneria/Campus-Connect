@@ -6,10 +6,10 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageSquare, Send, Search, Loader2, Video, ExternalLink } from 'lucide-react';
+import { MessageSquare, Send, Search, Loader2, Video, ExternalLink, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getUser, getUsers } from '@/lib/actions/user.actions';
-import { sendMessage, markConversationAsRead } from '@/lib/actions/message.actions';
+import { sendMessage, markConversationAsRead, deleteMessage, deleteConversation } from '@/lib/actions/message.actions';
 import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
 import { Shimmer } from '@/components/common/Shimmer';
@@ -18,6 +18,8 @@ import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/f
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 interface ConversationWithLastMessage extends IUser {
   lastMessage: IMessage | null;
@@ -35,6 +37,9 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const chatWithUserUid = searchParams.get('with');
 
@@ -185,6 +190,39 @@ export default function MessagesPage() {
     }
   }
 
+    const handleDeleteMessage = async (messageId: string) => {
+        const originalMessages = messages;
+        setMessages(messages.filter(m => m._id !== messageId));
+        try {
+            await deleteMessage(messageId);
+        } catch (error) {
+            setMessages(originalMessages);
+            toast({ title: 'Error', description: 'Failed to delete message.', variant: 'destructive' });
+        }
+    };
+
+    const handleDeleteConversation = async () => {
+        if (!conversationToDelete) return;
+        
+        setIsDeleting(true);
+        try {
+            await deleteConversation(conversationToDelete);
+            setConversations(prev => prev.filter(c => [c.uid, dbUser?.uid].sort().join('_') !== conversationToDelete));
+            if (activeConversation && [activeConversation.uid, dbUser?.uid].sort().join('_') === conversationToDelete) {
+                setActiveConversation(null);
+                setMessages([]);
+            }
+            toast({ title: 'Success', description: 'Conversation deleted.' });
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to delete conversation.', variant: 'destructive' });
+        } finally {
+            setIsDeleting(false);
+            setConversationToDelete(null);
+            setShowDeleteAlert(false);
+        }
+    };
+
+
   const handleStartVideoCall = (e: React.FormEvent) => {
     if (!conversationId) return;
     const meetingUrl = `https://meet.jit.si/${conversationId}`;
@@ -231,6 +269,7 @@ export default function MessagesPage() {
   };
 
   return (
+    <>
     <div className="container mx-auto max-w-7xl">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 h-[calc(100vh-80px)]">
         {/* Conversations Sidebar */}
@@ -245,36 +284,50 @@ export default function MessagesPage() {
           <div className="flex-1 overflow-y-auto">
             <nav className="flex flex-col">
               {filteredConversations.map(convoUser => (
-                <Link
-                  key={convoUser.uid}
-                  href={`/messages?with=${convoUser.uid}`}
-                  onClick={() => setActiveConversation(convoUser)}
-                  className={cn(
-                    "flex items-center gap-3 p-4 text-muted-foreground transition-all hover:bg-muted/50 border-b",
-                    activeConversation?.uid === convoUser.uid && "bg-muted text-foreground"
-                  )}
-                >
-                  <Avatar className={cn(
-                    "h-12 w-12 border-2",
-                    activeConversation?.uid === convoUser.uid ? "border-primary" : "border-transparent"
-                  )}>
-                    <AvatarImage src={convoUser.photoUrl} alt={convoUser.name} />
-                    <AvatarFallback>{convoUser.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex justify-between items-center">
-                        <span className="font-semibold truncate">{convoUser.name}</span>
-                        {convoUser.lastMessage?.createdAt && (
-                            <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(convoUser.lastMessage.createdAt), { addSuffix: true })}
-                            </span>
-                        )}
+                <div key={convoUser.uid} className="group relative">
+                    <Link
+                    href={`/messages?with=${convoUser.uid}`}
+                    onClick={() => setActiveConversation(convoUser)}
+                    className={cn(
+                        "flex items-center gap-3 p-4 text-muted-foreground transition-all hover:bg-muted/50 border-b",
+                        activeConversation?.uid === convoUser.uid && "bg-muted text-foreground"
+                    )}
+                    >
+                    <Avatar className={cn(
+                        "h-12 w-12 border-2",
+                        activeConversation?.uid === convoUser.uid ? "border-primary" : "border-transparent"
+                    )}>
+                        <AvatarImage src={convoUser.photoUrl} alt={convoUser.name} />
+                        <AvatarFallback>{convoUser.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                        <div className="flex justify-between items-center">
+                            <span className="font-semibold truncate">{convoUser.name}</span>
+                            {convoUser.lastMessage?.createdAt && (
+                                <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(convoUser.lastMessage.createdAt), { addSuffix: true })}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-sm truncate text-muted-foreground">
+                            {convoUser.lastMessage?.text}
+                        </p>
                     </div>
-                    <p className="text-sm truncate text-muted-foreground">
-                        {convoUser.lastMessage?.text}
-                    </p>
-                  </div>
-                </Link>
+                    </Link>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 opacity-0 group-hover:opacity-100"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const convoId = [dbUser!.uid, convoUser.uid].sort().join('_');
+                            setConversationToDelete(convoId);
+                            setShowDeleteAlert(true);
+                        }}
+                    >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
               ))}
                {conversations.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">
@@ -309,13 +362,23 @@ export default function MessagesPage() {
               </header>
               <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-muted/20">
                 {messages.map(msg => (
-                    <div key={msg._id.toString()} className={cn("flex items-end gap-2 animate-slide-up", msg.from === dbUser.uid && "justify-end")}>
+                    <div key={msg._id.toString()} className={cn("group flex items-end gap-2 animate-slide-up", msg.from === dbUser.uid && "justify-end")}>
                       {msg.from !== dbUser.uid && (
                         <Avatar className="h-8 w-8 self-start">
                           <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
                           <AvatarFallback>{activeConversation.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                       )}
+                       {msg.from === dbUser.uid && (
+                           <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                                onClick={() => handleDeleteMessage(msg._id.toString())}
+                            >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        )}
                       <div
                         className={cn(
                           "max-w-xs md:max-w-md lg:max-w-lg rounded-xl px-4 py-2 shadow-sm",
@@ -358,6 +421,24 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+     <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the entire conversation for both you and the other user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConversation} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 

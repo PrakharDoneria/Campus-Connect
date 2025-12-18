@@ -3,7 +3,7 @@
 
 import { firestore } from '@/lib/firebase';
 import { IMessage } from '@/types';
-import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { getUser } from './user.actions';
 import { getAdminApp, getMessaging } from '../firebase-admin';
 
@@ -89,5 +89,28 @@ export async function markConversationAsRead(conversationId: string, currentUser
 
   await batch.commit();
 }
+
+export async function deleteMessage(messageId: string): Promise<void> {
+    const messageRef = doc(firestore, 'messages', messageId);
+    await deleteDoc(messageRef);
+}
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+    const messagesRef = collection(firestore, 'messages');
+    const q = query(messagesRef, where('conversationId', '==', conversationId));
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return;
+    }
+    
+    const batch = writeBatch(firestore);
+    querySnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+}
+    
 
     

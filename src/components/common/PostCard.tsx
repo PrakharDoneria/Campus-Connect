@@ -159,6 +159,9 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
         setComments(prev => [createdComment, ...prev]);
         setNewComment('');
         toast({ title: 'Comment posted!' });
+         if (onPostUpdate) {
+            onPostUpdate({ ...post, comments: [...post.comments, createdComment._id.toString()] });
+        }
     } catch (error) {
         toast({ title: 'Error', description: 'Could not post comment.', variant: 'destructive' });
     } finally {
@@ -169,6 +172,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
 
   const isLikedByCurrentUser = user && post.likes.includes(user.uid);
   const isAuthor = user && post.author.uid === user.uid;
+  const commentCount = Array.isArray(post.comments) ? post.comments.length : (comments.length > 0 ? comments.length : 0);
 
   return (
     <>
@@ -230,7 +234,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
           </Button>
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-4 w-4" />
-            <span>{Array.isArray(post.comments) ? post.comments.length : comments.length}</span>
+            <span>{commentCount}</span>
           </Button>
         </CardFooter>
         
