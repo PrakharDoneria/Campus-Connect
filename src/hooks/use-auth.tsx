@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-const publicRoutes = ['/'];
+const publicRoutes = ['/', '/feed'];
 const authRoutes = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
