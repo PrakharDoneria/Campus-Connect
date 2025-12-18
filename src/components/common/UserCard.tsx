@@ -1,3 +1,4 @@
+
 'use client';
 
 import { IUser } from '@/types';
@@ -9,9 +10,9 @@ import Link from 'next/link';
 
 export function UserCard({ user }: { user: IUser }) {
 
-  const handleFollow = () => {
-    console.log(`Following user: ${user.name} (${user._id})`);
-    // Placeholder for actual follow logic
+  const handleAddFriend = () => {
+    console.log(`Adding user as friend: ${user.name} (${user._id})`);
+    // Placeholder for actual friend request logic
   };
 
   return (
@@ -29,8 +30,8 @@ export function UserCard({ user }: { user: IUser }) {
             <p className="text-xs text-muted-foreground">{user.major}</p>
         </CardContent>
         <div className="flex w-full gap-2 mt-4">
-            <Button size="sm" className="flex-1" onClick={(e) => { e.preventDefault(); handleFollow(); }}>
-                <UserPlus className="mr-2 h-4 w-4" /> Follow
+            <Button size="sm" className="flex-1" onClick={(e) => { e.preventDefault(); handleAddFriend(); }}>
+                <UserPlus className="mr-2 h-4 w-4" /> Add Friend
             </Button>
             <Button size="sm" variant="outline" className="flex-1" disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />

@@ -3,21 +3,20 @@
 
 import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { getUserById } from '@/lib/actions/user.actions';
 import { getPosts } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit } from 'lucide-react';
+import { Building, GraduationCap, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 
 export default function OwnProfilePage() {
-  const { user: currentUser, dbUser } = useAuth();
+  const { dbUser } = useAuth();
   const [posts, setPosts] = useState<IPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +36,11 @@ export default function OwnProfilePage() {
     }
     fetchData();
   }, [dbUser]);
+
+  const handlePostUpdate = (updatedPost: IPost) => {
+    setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
+  };
+
 
   if (loading) {
     return (
@@ -83,15 +87,14 @@ export default function OwnProfilePage() {
       </Card>
       
       <Tabs defaultValue="posts" className="mt-8">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="following" disabled>Following</TabsTrigger>
-          <TabsTrigger value="followers" disabled>Followers</TabsTrigger>
+          <TabsTrigger value="friends" disabled>Friends</TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
                 <div className="space-y-4">
-                    {posts.map(post => <PostCard key={post._id.toString()} post={post} />)}
+                    {posts.map(post => <PostCard key={post._id.toString()} post={post} onPostUpdate={handlePostUpdate} />)}
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
@@ -99,14 +102,9 @@ export default function OwnProfilePage() {
                 </div>
             )}
         </TabsContent>
-        <TabsContent value="following">
+        <TabsContent value="friends">
             <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>Not following anyone yet.</p>
-            </div>
-        </TabsContent>
-         <TabsContent value="followers">
-            <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>No followers yet.</p>
+                <p>No friends to show yet.</p>
             </div>
         </TabsContent>
       </Tabs>

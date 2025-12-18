@@ -37,6 +37,10 @@ export async function createPost(content: string, circle: string, user: IUser): 
 
   const result = await postsCollection.insertOne(newPostData);
   
+  if (!result.insertedId) {
+      throw new Error('Failed to create the post.');
+  }
+
   return {
     ...newPostData,
     _id: result.insertedId.toString(),
@@ -52,4 +56,25 @@ export async function getPosts(): Promise<IPost[]> {
         ...post,
         _id: post._id.toString(),
     })) as IPost[];
+}
+
+export async function toggleLikePost(postId: string, userId: string): Promise<boolean> {
+  const postsCollection = await getPostsCollection();
+  const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
+  const isLiked = post.likes.includes(userId);
+  const updateOperation = isLiked
+    ? { $pull: { likes: userId } }
+    : { $push: { likes: userId } };
+  
+  await postsCollection.updateOne(
+    { _id: new ObjectId(postId) },
+    updateOperation
+  );
+
+  return !isLiked;
 }

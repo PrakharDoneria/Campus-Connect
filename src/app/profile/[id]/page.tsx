@@ -49,6 +49,11 @@ export default function UserProfilePage() {
     }
     fetchData();
   }, [id]);
+  
+  const handlePostUpdate = (updatedPost: IPost) => {
+    setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
+  };
+
 
   const isOwnProfile = currentUser?.uid === user?.uid;
 
@@ -96,7 +101,7 @@ export default function UserProfilePage() {
             ) : (
               <>
                 <Button>
-                  <UserPlus className="mr-2 h-4 w-4" /> Follow
+                  <UserPlus className="mr-2 h-4 w-4" /> Add Friend
                 </Button>
                 <Button variant="outline" disabled>
                   <MessageSquare className="mr-2 h-4 w-4" /> Message
@@ -108,15 +113,14 @@ export default function UserProfilePage() {
       </Card>
       
       <Tabs defaultValue="posts" className="mt-8">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="following" disabled>Following</TabsTrigger>
-          <TabsTrigger value="followers" disabled>Followers</TabsTrigger>
+          <TabsTrigger value="friends" disabled>Friends</TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
                 <div className="space-y-4">
-                    {posts.map(post => <PostCard key={post._id.toString()} post={post} />)}
+                    {posts.map(post => <PostCard key={post._id.toString()} post={post} onPostUpdate={handlePostUpdate} />)}
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
@@ -124,14 +128,9 @@ export default function UserProfilePage() {
                 </div>
             )}
         </TabsContent>
-        <TabsContent value="following">
+        <TabsContent value="friends">
             <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>Not following anyone yet.</p>
-            </div>
-        </TabsContent>
-         <TabsContent value="followers">
-            <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>No followers yet.</p>
+                <p>No friends to show yet.</p>
             </div>
         </TabsContent>
       </Tabs>
