@@ -4,8 +4,8 @@
 import clientPromise from '@/lib/mongodb';
 import { IComment, IPost, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
-import { getAdminApp, getMessaging } from '../firebase-admin';
 import { getUser } from './user.actions';
+import { sendPushNotification } from './notification.actions';
 
 async function getCommentsCollection(): Promise<Collection<Omit<IComment, '_id'>>> {
   const client = await clientPromise;
@@ -53,27 +53,13 @@ export async function createComment(postId: string, content: string, user: IUser
   // Send notification
   const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
   if (post && post.author.uid !== user.uid) {
-    try {
-      const author = await getUser(post.author.uid);
-      if (author?.fcmToken) {
-        await getAdminApp();
-        const messaging = await getMessaging();
-        const messagePayload = {
-          notification: {
-            title: `${user.name} commented on your post`,
-            body: content.substring(0, 100),
-          },
-          token: author.fcmToken,
-          webpush: {
-            fcmOptions: {
-              link: `${process.env.NEXT_PUBLIC_BASE_URL}/feed`, // Or specific post link
-            },
-          },
-        };
-        await messaging.send(messagePayload);
-      }
-    } catch (error) {
-      console.error("Failed to send comment notification:", error);
+    const author = await getUser(post.author.uid);
+    if (author?.fcmToken) {
+      sendPushNotification({
+        token: author.fcmToken,
+        title: `${user.name} commented on your post`,
+        body: content.substring(0, 100),
+      });
     }
   }
 

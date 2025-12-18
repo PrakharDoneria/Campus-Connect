@@ -5,7 +5,7 @@ import { firestore } from '@/lib/firebase';
 import { IMessage } from '@/types';
 import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { getUser } from './user.actions';
-import { getAdminApp, getMessaging } from '../firebase-admin';
+import { sendPushNotification } from './notification.actions';
 
 export async function sendMessage(fromUid: string, toUid: string, text: string): Promise<IMessage> {
   if (!fromUid || !toUid || !text.trim()) {
@@ -27,33 +27,17 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
   const docRef = await addDoc(messagesCollection, newMessageData);
 
   // Send push notification
-  try {
-    const [fromUser, toUser] = await Promise.all([
-        getUser(fromUid),
-        getUser(toUid)
-    ]);
+  const [fromUser, toUser] = await Promise.all([
+      getUser(fromUid),
+      getUser(toUid)
+  ]);
 
-    if (toUser?.fcmToken && fromUser) {
-        await getAdminApp(); // Ensure admin app is initialized
-        const messaging = await getMessaging();
-        
-        const messagePayload = {
-            notification: {
-                title: fromUser.name,
-                body: text,
-            },
-            token: toUser.fcmToken,
-            webpush: {
-              fcmOptions: {
-                link: `${process.env.NEXT_PUBLIC_BASE_URL}/messages?with=${fromUid}`
-              }
-            }
-        };
-        await messaging.send(messagePayload);
-    }
-  } catch (error) {
-    console.error("Failed to send push notification:", error);
-    // We don't throw here because the message was still sent successfully.
+  if (toUser?.fcmToken && fromUser) {
+      sendPushNotification({
+          token: toUser.fcmToken,
+          title: fromUser.name,
+          body: text,
+      });
   }
 
   return {
@@ -111,6 +95,3 @@ export async function deleteConversation(conversationId: string): Promise<void> 
     
     await batch.commit();
 }
-    
-
-    

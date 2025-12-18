@@ -4,7 +4,7 @@
 import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
-import { getAdminApp, getMessaging } from '../firebase-admin';
+import { sendPushNotification } from './notification.actions';
 
 async function getDb() {
     const client = await clientPromise;
@@ -157,25 +157,11 @@ export async function sendFriendRequest(fromUid: string, toUid: string): Promise
 
   // Send notification
   if (toUser?.fcmToken && fromUser) {
-    try {
-      await getAdminApp();
-      const messaging = await getMessaging();
-      const messagePayload = {
-        notification: {
-          title: "You have a new friend request!",
-          body: `${fromUser.name} wants to be your friend.`,
-        },
-        token: toUser.fcmToken,
-        webpush: {
-          fcmOptions: {
-            link: `${process.env.NEXT_PUBLIC_BASE_URL}/friends`,
-          },
-        },
-      };
-      await messaging.send(messagePayload);
-    } catch (error) {
-      console.error("Failed to send friend request notification:", error);
-    }
+    sendPushNotification({
+      token: toUser.fcmToken,
+      title: "You have a new friend request!",
+      body: `${fromUser.name} wants to be your friend.`,
+    });
   }
 }
 
