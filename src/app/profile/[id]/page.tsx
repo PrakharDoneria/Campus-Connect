@@ -128,14 +128,16 @@ export default function UserProfilePage() {
       <Card className="overflow-hidden">
         <div className="h-32 bg-muted/50" />
         <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col items-center text-center sm:flex-row sm:items-end sm:text-left -mt-20 sm:-mt-16">
-            <Avatar className="w-32 h-32 border-4 border-background">
-              <AvatarImage src={user.photoUrl} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="sm:ml-4 mt-4 sm:mt-0">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4">
+            <div className="-mt-20 shrink-0 sm:-mt-24">
+              <Avatar className="w-32 h-32 border-4 border-background">
+                <AvatarImage src={user.photoUrl} alt={user.name} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="mt-4 sm:mt-0 flex-grow">
               <h1 className="text-3xl font-bold">{user.name}</h1>
-              <div className="flex items-center justify-center sm:justify-start gap-4 text-muted-foreground mt-2">
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
                     <span>{user.university}</span>
@@ -146,7 +148,7 @@ export default function UserProfilePage() {
                   </div>
               </div>
             </div>
-            <div className="flex justify-center gap-2 mt-4 sm:ml-auto sm:self-end">
+            <div className="flex justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
               {isOwnProfile ? (
                 <Button asChild variant="outline">
                   <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
@@ -184,3 +186,4 @@ export default function UserProfilePage() {
     </div>
   );
 }
+
