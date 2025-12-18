@@ -4,7 +4,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
-import { IPost } from '@/types';
+import { getUsers } from '@/lib/actions/user.actions';
+import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,10 +15,12 @@ import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
+import { FriendCard } from '@/components/common/FriendCard';
 
 export default function OwnProfilePage() {
   const { dbUser, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<IPost[]>([]);
+  const [friends, setFriends] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -32,8 +35,12 @@ export default function OwnProfilePage() {
       if (!dbUser) return;
       try {
         setLoading(true);
-        const userPosts = await getPostsByAuthor(dbUser.uid);
+        const [userPosts, userFriends] = await Promise.all([
+          getPostsByAuthor(dbUser.uid),
+          getUsers(dbUser.friends)
+        ]);
         setPosts(userPosts);
+        setFriends(userFriends);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
       } finally {
@@ -105,7 +112,7 @@ export default function OwnProfilePage() {
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
-          <TabsTrigger value="friends" asChild><Link href="/friends">Friends ({dbUser.friends.length})</Link></TabsTrigger>
+          <TabsTrigger value="friends">Friends ({friends.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
@@ -115,6 +122,18 @@ export default function OwnProfilePage() {
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
                     <p>Your post history is looking a little empty. Time to share something!</p>
+                </div>
+            )}
+        </TabsContent>
+        <TabsContent value="friends" className="mt-4">
+             {friends.length > 0 ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {friends.map(friend => <FriendCard key={friend.uid} user={friend} />)}
+                </div>
+            ) : (
+                <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
+                    <p>This is where your friends would be... IF YOU HAD ANY!</p>
+                     <Button variant="link" asChild><Link href="/nearby">Find Some Friends</Link></Button>
                 </div>
             )}
         </TabsContent>
