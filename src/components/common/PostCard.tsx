@@ -1,18 +1,20 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Heart, Loader2, MoreHorizontal } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MessageCircle, Heart, Loader2, MoreHorizontal, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { IPost } from '@/types';
+import type { IPost, IComment } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { toggleLikePost, updatePost, deletePost } from '@/lib/actions/post.actions';
+import { createComment, getCommentsByPost } from '@/lib/actions/comment.actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +40,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from '../ui/textarea';
-
+import { Separator } from '../ui/separator';
 
 interface PostCardProps {
   post: IPost;
@@ -48,7 +50,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: PostCardProps) {
-  const { user } = useAuth();
+  const { user, dbUser } = useAuth();
   const { toast } = useToast();
   const [isLiking, setIsLiking] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -57,9 +59,31 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
   const [editedContent, setEditedContent] = useState(post.content);
   const [isUpdating, setIsUpdating] = useState(false);
   
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<IComment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+
   const timestamp = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const editedTimestamp = post.editedAt ? formatDistanceToNow(new Date(post.editedAt), { addSuffix: true }) : null;
 
+  useEffect(() => {
+    if (showComments) {
+      const fetchComments = async () => {
+        setIsLoadingComments(true);
+        try {
+          const fetchedComments = await getCommentsByPost(post._id.toString());
+          setComments(fetchedComments);
+        } catch (error) {
+          toast({ title: 'Error', description: 'Could not fetch comments.' });
+        } finally {
+          setIsLoadingComments(false);
+        }
+      };
+      fetchComments();
+    }
+  }, [showComments, post._id, toast]);
 
   const handleLike = async () => {
     if (isGuest || !user) {
@@ -124,6 +148,25 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
     }
   };
 
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || !dbUser) {
+        return;
+    }
+    setIsCommenting(true);
+    try {
+        const createdComment = await createComment(post._id.toString(), newComment, dbUser);
+        setComments(prev => [createdComment, ...prev]);
+        setNewComment('');
+        toast({ title: 'Comment posted!' });
+    } catch (error) {
+        toast({ title: 'Error', description: 'Could not post comment.', variant: 'destructive' });
+    } finally {
+        setIsCommenting(false);
+    }
+  };
+
+
   const isLikedByCurrentUser = user && post.likes.includes(user.uid);
   const isAuthor = user && post.author.uid === user.uid;
 
@@ -185,11 +228,64 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
             {isLiking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isLikedByCurrentUser && "fill-red-500 text-red-500")} />}
             <span>{post.likes.length}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2" disabled>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-4 w-4" />
-            <span>{post.comments}</span>
+            <span>{Array.isArray(post.comments) ? post.comments.length : comments.length}</span>
           </Button>
         </CardFooter>
+        
+        {showComments && (
+          <div className="p-4 pt-0">
+            <Separator className="mb-4" />
+            {dbUser && (
+                <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 mb-4">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={dbUser.photoUrl} alt={dbUser.name} />
+                        <AvatarFallback>{dbUser.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <Input 
+                        placeholder="Write a comment..." 
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        disabled={isCommenting}
+                    />
+                    <Button type="submit" size="icon" disabled={isCommenting || !newComment.trim()}>
+                        {isCommenting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                </form>
+            )}
+
+            {isLoadingComments ? (
+                <div className="flex justify-center items-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+            ) : comments.length > 0 ? (
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                {comments.map(comment => (
+                    <div key={comment._id.toString()} className="flex items-start gap-3">
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
+                            <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 text-sm bg-muted rounded-lg p-2">
+                            <div className="flex items-baseline gap-2">
+                                <Link href={`/profile/${comment.author.uid}`} className="font-semibold hover:underline">
+                                    {comment.author.name}
+                                </Link>
+                                <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                </span>
+                            </div>
+                            <p>{comment.content}</p>
+                        </div>
+                    </div>
+                ))}
+                </div>
+            ) : (
+                <p className="text-center text-sm text-muted-foreground py-4">No comments yet. Be the first to comment!</p>
+            )}
+          </div>
+        )}
       </Card>
       
       {/* Delete Confirmation Dialog */}

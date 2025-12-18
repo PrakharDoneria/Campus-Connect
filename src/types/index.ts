@@ -38,7 +38,15 @@ export interface IPost {
     createdAt: Date;
     editedAt?: Date;
     likes: string[]; // Array of user UIDs
-    comments: number; // Keep it simple for now
+    comments: string[]; // Array of comment IDs
+}
+
+export interface IComment {
+  _id: string | ObjectId;
+  postId: string;
+  author: PostAuthor;
+  content: string;
+  createdAt: Date;
 }
 
 export interface ICircle {

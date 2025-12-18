@@ -4,6 +4,8 @@
 import clientPromise from '@/lib/mongodb';
 import { IPost, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
+import { getAdminApp, getMessaging } from '../firebase-admin';
+import { getUser } from './user.actions';
 
 async function getPostsCollection(): Promise<Collection<Omit<IPost, '_id'>>> {
   const client = await clientPromise;
@@ -32,7 +34,7 @@ export async function createPost(content: string, circle: string, user: IUser): 
     circle: circle,
     createdAt: new Date(),
     likes: [],
-    comments: 0,
+    comments: [], // Changed to an array of comment IDs
   };
 
   const result = await postsCollection.insertOne(newPostData);
@@ -99,6 +101,38 @@ export async function toggleLikePost(postId: string, userId: string): Promise<bo
     { _id: new ObjectId(postId) },
     updateOperation
   );
+
+  // Send notification if the post is being liked (not unliked)
+  if (!isLiked && post.author.uid !== userId) {
+    try {
+      const [liker, author] = await Promise.all([
+        getUser(userId),
+        getUser(post.author.uid),
+      ]);
+
+      if (liker && author?.fcmToken) {
+        getAdminApp(); // Ensure admin app is initialized
+        const messaging = getMessaging();
+        
+        const messagePayload = {
+            notification: {
+                title: `${liker.name} liked your post!`,
+                body: `"${post.content.substring(0, 50)}..."`,
+            },
+            token: author.fcmToken,
+            webpush: {
+              fcmOptions: {
+                link: `${process.env.NEXT_PUBLIC_BASE_URL}/feed` // Or a more specific post link if available
+              }
+            }
+        };
+        await messaging.send(messagePayload);
+      }
+    } catch (error) {
+        console.error("Failed to send like notification:", error);
+    }
+  }
+
 
   return !isLiked;
 }

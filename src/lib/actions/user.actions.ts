@@ -4,6 +4,7 @@
 import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
+import { getAdminApp, getMessaging } from '../firebase-admin';
 
 async function getDb() {
     const client = await clientPromise;
@@ -144,13 +145,38 @@ export async function getNearbyUsers({
 
 export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
   const users = await getUsersCollection();
-  // Prevent sending a request to yourself or if already friends
   const fromUser = await users.findOne({ uid: fromUid });
+  const toUser = await users.findOne({ uid: toUid });
+
   if (fromUid === toUid || fromUser?.friends?.includes(toUid)) {
       throw new Error("Invalid friend request.");
   }
+
   await users.updateOne({ uid: fromUid }, { $addToSet: { friendRequestsSent: toUid } });
   await users.updateOne({ uid: toUid }, { $addToSet: { friendRequestsReceived: fromUid } });
+
+  // Send notification
+  if (toUser?.fcmToken && fromUser) {
+    try {
+      getAdminApp();
+      const messaging = getMessaging();
+      const messagePayload = {
+        notification: {
+          title: "You have a new friend request!",
+          body: `${fromUser.name} wants to be your friend.`,
+        },
+        token: toUser.fcmToken,
+        webpush: {
+          fcmOptions: {
+            link: `${process.env.NEXT_PUBLIC_BASE_URL}/friends`,
+          },
+        },
+      };
+      await messaging.send(messagePayload);
+    } catch (error) {
+      console.error("Failed to send friend request notification:", error);
+    }
+  }
 }
 
 export async function acceptFriendRequest(userUid: string, fromUid: string): Promise<void> {
