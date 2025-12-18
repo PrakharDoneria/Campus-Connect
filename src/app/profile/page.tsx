@@ -105,7 +105,7 @@ export default function OwnProfilePage() {
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
-          <TabsTrigger value="friends" asChild><Link href="/friends">Friends</Link></TabsTrigger>
+          <TabsTrigger value="friends" asChild><Link href="/friends">Friends ({dbUser.friends.length})</Link></TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (

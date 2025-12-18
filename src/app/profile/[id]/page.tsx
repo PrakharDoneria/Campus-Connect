@@ -117,7 +117,7 @@ export default function UserProfilePage() {
         case 'received':
             return <Button asChild><Link href="/friends">Respond to Request</Link></Button>;
         default:
-            return <Button onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
+            return <Button onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add</Button>;
     }
   };
 
@@ -142,11 +142,15 @@ export default function UserProfilePage() {
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 -mt-20">
             <Avatar className="w-28 h-28 sm:w-32 sm:h-32 border-4 border-background shrink-0">
-              <AvatarImage src={user.photoUrl} alt={user.name} />
-              <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
+               <Link href={`/profile/${user._id.toString()}`}>
+                <AvatarImage src={user.photoUrl} alt={user.name} />
+                <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
+              </Link>
             </Avatar>
             <div className="mt-4 sm:mt-0 flex-grow">
-              <h1 className="text-2xl sm:text-3xl font-bold">{user.name}</h1>
+               <Link href={`/profile/${user._id.toString()}`}>
+                <h1 className="text-2xl sm:text-3xl font-bold hover:underline">{user.name}</h1>
+              </Link>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
                 <div className="flex items-center gap-2">
                   <Building className="h-4 w-4" />
@@ -158,16 +162,16 @@ export default function UserProfilePage() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
+            <div className="flex w-full sm:w-auto justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
               {isOwnProfile ? (
-                <Button asChild variant="outline">
+                <Button asChild variant="outline" className="flex-1 sm:flex-initial">
                   <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
                 </Button>
               ) : (
                 <>
                   {renderFriendButton()}
-                  <Button variant="outline" asChild disabled={friendStatus !== 'friends'}>
-                    <Link href={`/messages?with=${user.uid}`}>
+                  <Button variant="outline" asChild disabled={friendStatus !== 'friends'} className="flex-1 sm:flex-initial">
+                    <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
                       <MessageSquare className="mr-2 h-4 w-4" /> Message
                     </Link>
                   </Button>
