@@ -42,8 +42,13 @@ export async function getUserById(id: string): Promise<IUser | null> {
 
 export async function createUser(user: Partial<IUser>): Promise<IUser> {
   const usersCollection = await getUsersCollection();
-  const newUserPayload: IUser = {
-    _id: new ObjectId().toString(),
+  
+  const existingUser = await usersCollection.findOne({ uid: user.uid });
+    if (existingUser) {
+        return { ...existingUser, _id: existingUser._id.toString() } as unknown as IUser;
+    }
+
+  const newUserPayload: Omit<IUser, '_id'> = {
     uid: user.uid!,
     email: user.email!,
     name: user.name!,

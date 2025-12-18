@@ -38,7 +38,7 @@ export function UserCard({ user }: { user: IUser }) {
   };
 
   const getFriendStatus = () => {
-    if (!dbUser || !user) return null;
+    if (!dbUser || !user || !dbUser.friends || !dbUser.friendRequestsSent || !dbUser.friendRequestsReceived) return null;
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
     if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
@@ -79,7 +79,7 @@ export function UserCard({ user }: { user: IUser }) {
             <p className="text-xs text-muted-foreground">{user.major}</p>
         </CardContent>
         <div className="flex w-full gap-2 mt-4">
-            {renderFriendButton()}
+            {dbUser?.uid !== user.uid && renderFriendButton()}
             <Button size="sm" variant="outline" className="flex-1" disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />
             </Button>

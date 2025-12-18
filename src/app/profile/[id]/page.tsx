@@ -79,7 +79,7 @@ export default function UserProfilePage() {
   };
 
   const getFriendStatus = () => {
-    if (authLoading || !dbUser || !user) return null;
+    if (authLoading || !dbUser || !user || !dbUser.friends || !dbUser.friendRequestsSent || !dbUser.friendRequestsReceived) return null;
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
     if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
