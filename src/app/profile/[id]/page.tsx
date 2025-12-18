@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { useToast } from '@/hooks/use-toast';
 import { FriendCard } from '@/components/common/FriendCard';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 export default function UserProfilePage() {
@@ -84,10 +84,8 @@ export default function UserProfilePage() {
       await sendFriendRequest(dbUser.uid, user.uid);
       toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}. They'll be so thrilled.` });
        // Manually update the state to give instant feedback
-      const updatedDbUser = { ...dbUser, friendRequestsSent: [...dbUser.friendRequestsSent, user.uid] };
-      // This is a bit of a hack, but it forces a re-render of the button state
-      // In a real app with global state management, this would be cleaner.
-      setUser(user);
+      const updatedUser = { ...user, friendRequestsReceived: [...(user.friendRequestsReceived || []), dbUser.uid] };
+      setUser(updatedUser);
       router.refresh();
     } catch (error) {
       toast({ title: "Error", description: "Could not send friend request.", variant: "destructive" });
@@ -114,7 +112,7 @@ export default function UserProfilePage() {
     if (dbUser.blockedUsers?.includes(user.uid)) return 'blocked';
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
-    if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
+    if (user.friendRequestsSent?.includes(dbUser.uid)) return 'received'; // Check if the other user sent a request to me
     return null;
   };
   
@@ -135,7 +133,7 @@ export default function UserProfilePage() {
         case 'received':
             return <Button asChild><Link href="/friends">Respond to Request</Link></Button>;
         default:
-            return <Button onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add</Button>;
+            return <Button onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
     }
   };
 
@@ -221,7 +219,7 @@ export default function UserProfilePage() {
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
                 <div className="space-y-4">
-                    {posts.map(post => <PostCard key={post._id.toString()} post={post} onPostUpdate={handlePostUpdate} onPostDelete={handlePostDelete} />)}
+                    {posts.map(post => <PostCard key={post._id.toString()} post={post} isGuest={!currentUser} onPostUpdate={handlePostUpdate} onPostDelete={handlePostDelete} />)}
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
@@ -244,3 +242,4 @@ export default function UserProfilePage() {
     </div>
   );
 }
+
