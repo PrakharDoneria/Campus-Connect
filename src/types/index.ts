@@ -11,3 +11,19 @@ export interface IUser {
     coordinates: [number, number];
   };
 }
+
+export interface PostAuthor {
+    name: string;
+    avatarUrl: string;
+    university: string;
+}
+
+export interface Post {
+    id: string;
+    author: PostAuthor;
+    timestamp: string;
+    content: string;
+    imageUrl?: string;
+    likes: number;
+    comments: number;
+}

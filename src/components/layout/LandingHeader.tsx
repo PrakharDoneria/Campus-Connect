@@ -5,6 +5,14 @@ import { Button } from '../ui/button';
 import { Github, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function LandingHeader() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut } = useAuth();
@@ -26,16 +34,29 @@ export default function LandingHeader() {
                 <Button onClick={signOut} variant="ghost">Sign Out</Button>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button onClick={signInWithGoogle} variant="outline">
-                  <GoogleIcon className="mr-2 h-4 w-4" />
-                  Sign in with Google
-                </Button>
-                <Button onClick={signInWithGitHub}>
-                  <Github className="mr-2 h-4 w-4" />
-                  Sign in with GitHub
-                </Button>
-              </div>
+               <Sheet>
+                <SheetTrigger asChild>
+                  <Button>Login / Sign Up</Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="rounded-t-lg">
+                  <SheetHeader className="text-center">
+                    <SheetTitle>Join Campus Connect</SheetTitle>
+                    <SheetDescription>
+                      Sign in or create an account to connect with your campus.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-4 p-4 items-center">
+                    <Button onClick={signInWithGoogle} variant="outline" className="w-full max-w-xs">
+                      <GoogleIcon className="mr-2 h-4 w-4" />
+                      Sign in with Google
+                    </Button>
+                    <Button onClick={signInWithGitHub} className="w-full max-w-xs">
+                      <Github className="mr-2 h-4 w-4" />
+                      Sign in with GitHub
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
             ))}
         </nav>
       </div>
