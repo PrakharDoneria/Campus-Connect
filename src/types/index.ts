@@ -1,3 +1,6 @@
+
+import type { ObjectId } from 'mongodb';
+
 export interface IUser {
   _id: string;
   uid: string;
@@ -13,17 +16,17 @@ export interface IUser {
 }
 
 export interface PostAuthor {
+    uid: string;
     name: string;
     avatarUrl: string;
     university: string;
 }
 
-export interface Post {
-    id: string;
+export interface IPost {
+    _id: string | ObjectId;
     author: PostAuthor;
-    timestamp: string;
     content: string;
-    imageUrl?: string;
-    likes: number;
-    comments: number;
+    createdAt: Date;
+    likes: string[]; // Array of user UIDs
+    comments: number; // Keep it simple for now
 }
