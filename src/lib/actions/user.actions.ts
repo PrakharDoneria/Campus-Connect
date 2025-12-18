@@ -158,8 +158,8 @@ export async function sendFriendRequest(fromUid: string, toUid: string): Promise
   // Send notification
   if (toUser?.fcmToken && fromUser) {
     try {
-      getAdminApp();
-      const messaging = getMessaging();
+      await getAdminApp();
+      const messaging = await getMessaging();
       const messagePayload = {
         notification: {
           title: "You have a new friend request!",

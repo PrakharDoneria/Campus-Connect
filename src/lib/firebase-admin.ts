@@ -1,10 +1,12 @@
 
+'use server';
+
 import * as admin from 'firebase-admin';
 
 let adminApp: admin.app.App;
 let messaging: admin.messaging.Messaging;
 
-export function getAdminApp() {
+export async function getAdminApp() {
   if (adminApp) {
     return adminApp;
   }
@@ -17,9 +19,11 @@ export function getAdminApp() {
 
   let serviceAccount;
   try {
-    serviceAccount = JSON.parse(serviceAccountString);
+    // Decode the Base64 string to get the original JSON string
+    const decodedString = Buffer.from(serviceAccountString, 'base64').toString('utf-8');
+    serviceAccount = JSON.parse(decodedString);
   } catch (e) {
-    console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it's a valid JSON string.", e);
+    console.error("Failed to decode or parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it's a valid Base64-encoded JSON string.", e);
     throw new Error("Firebase service account key is malformed.");
   }
 
@@ -35,9 +39,10 @@ export function getAdminApp() {
   return adminApp;
 }
 
-export function getMessaging() {
+export async function getMessaging() {
     if (!messaging) {
-        messaging = getAdminApp().messaging();
+        const app = await getAdminApp();
+        messaging = app.messaging();
     }
     return messaging;
 }

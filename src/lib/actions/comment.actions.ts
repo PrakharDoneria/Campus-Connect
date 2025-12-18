@@ -56,8 +56,8 @@ export async function createComment(postId: string, content: string, user: IUser
     try {
       const author = await getUser(post.author.uid);
       if (author?.fcmToken) {
-        getAdminApp();
-        const messaging = getMessaging();
+        await getAdminApp();
+        const messaging = await getMessaging();
         const messagePayload = {
           notification: {
             title: `${user.name} commented on your post`,

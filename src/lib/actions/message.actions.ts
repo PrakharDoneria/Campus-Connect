@@ -34,8 +34,8 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
     ]);
 
     if (toUser?.fcmToken && fromUser) {
-        getAdminApp(); // Ensure admin app is initialized
-        const messaging = getMessaging();
+        await getAdminApp(); // Ensure admin app is initialized
+        const messaging = await getMessaging();
         
         const messagePayload = {
             notification: {

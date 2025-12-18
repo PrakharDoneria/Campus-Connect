@@ -111,8 +111,8 @@ export async function toggleLikePost(postId: string, userId: string): Promise<bo
       ]);
 
       if (liker && author?.fcmToken) {
-        getAdminApp(); // Ensure admin app is initialized
-        const messaging = getMessaging();
+        await getAdminApp(); // Ensure admin app is initialized
+        const messaging = await getMessaging();
         
         const messagePayload = {
             notification: {
