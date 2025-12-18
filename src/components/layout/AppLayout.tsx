@@ -14,13 +14,36 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { GraduationCap, LayoutGrid, LogOut, User, Users } from 'lucide-react';
+import { GraduationCap, LayoutGrid, LogOut, Share2, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, dbUser, signOut } = useAuth();
   const pathname = usePathname();
+  const { toast } = useToast();
+
+  const handleInvite = async () => {
+    const inviteUrl = window.location.origin;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on Campus Connect!',
+          text: `Check out Campus Connect, the social network for students.`,
+          url: inviteUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      navigator.clipboard.writeText(inviteUrl);
+      toast({
+        title: 'Invite Link Copied!',
+        description: 'The invite link has been copied to your clipboard.',
+      });
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -49,6 +72,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span>Nearby</span>
                 </SidebarMenuButton>
               </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleInvite} tooltip="Invite">
+                    <Share2 />
+                    <span>Invite Friend</span>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href="/profile">
