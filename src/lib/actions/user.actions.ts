@@ -5,9 +5,30 @@ import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 
+async function getDb() {
+    const client = await clientPromise;
+    return client.db();
+}
+
+async function ensureIndexes() {
+    const db = await getDb();
+    try {
+        // Index for messages to improve query performance
+        await db.collection('messages').createIndex(
+            { conversationId: 1, createdAt: 1 },
+            { name: 'conversation_messages_idx' }
+        );
+    } catch (e) {
+        console.warn("Could not create index on messages. This is expected if it already exists.");
+    }
+}
+
+// Call it once when the server starts
+ensureIndexes();
+
+
 async function getUsersCollection(): Promise<Collection<IUser>> {
-  const client = await clientPromise;
-  const db = client.db();
+  const db = await getDb();
   // Ensure the 2dsphere index exists
   try {
     await db.collection<IUser>('users').createIndex({ location: '2dsphere' });
@@ -24,8 +45,7 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
 }
 
 async function getMessagesCollection(): Promise<Collection<Omit<IMessage, '_id'>>> {
-  const client = await clientPromise;
-  const db = client.db();
+  const db = await getDb();
   return db.collection<Omit<IMessage, '_id'>>('messages');
 }
 

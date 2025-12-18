@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Heart, Loader2 } from 'lucide-react';
+import { MessageCircle, Heart, Loader2, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IPost } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -13,6 +13,12 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { toggleLikePost } from '@/lib/actions/post.actions';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface PostCardProps {
   post: IPost;
@@ -55,6 +61,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate }: PostCardProps)
   };
 
   const isLikedByCurrentUser = user && post.likes.includes(user.uid);
+  const isAuthor = user && post.author.uid === user.uid;
 
   return (
     <Card>
@@ -76,6 +83,28 @@ export function PostCard({ post, isGuest = false, onPostUpdate }: PostCardProps)
             </div>
             <p className="text-sm text-muted-foreground">{post.author.university} • {timestamp}</p>
           </div>
+           {isAuthor && (
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toast({ title: 'Coming Soon!', description: 'Editing posts will be available shortly.' })}>
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => toast({ title: 'Coming Soon!', description: 'Deleting posts will be available shortly.' })}
+                  >
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
