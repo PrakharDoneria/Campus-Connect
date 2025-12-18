@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-const publicRoutes = ['/', '/feed'];
+const publicRoutes = ['/feed'];
 const authRoutes = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -83,16 +83,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (loading) return;
 
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
-    const isPublicRoute = publicRoutes.includes(pathname);
+    const isPublicRoute = publicRoutes.includes(pathname) || pathname === '/';
+    const isProfileRoute = pathname === '/profile';
 
     if (user) {
-      if (isAuthRoute) {
+      // If user is logged in
+      if (pathname === '/') {
         router.push('/feed');
-      } else if (isProfileComplete === false && pathname !== '/profile') {
+      } else if (isAuthRoute) {
+        router.push('/feed');
+      } else if (isProfileComplete === false && !isProfileRoute) {
         router.push('/profile');
       }
-    } else if (!isPublicRoute && !isAuthRoute) {
+    } else {
+      // If user is not logged in
+      if (!isPublicRoute && !isAuthRoute && !isProfileRoute) {
         router.push('/');
+      }
     }
 
   }, [user, isProfileComplete, loading, pathname, router]);

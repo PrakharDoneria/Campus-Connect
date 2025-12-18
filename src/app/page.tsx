@@ -20,7 +20,7 @@ import { GoogleIcon } from '@/components/icons';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-students');
-  const { signInWithGoogle, signInWithGitHub } = useAuth();
+  const { user, signInWithGoogle, signInWithGitHub } = useAuth();
 
   const features = [
     {
@@ -57,29 +57,35 @@ export default function Home() {
                   The exclusive social network for college students. Discover peers, share updates, and build your community, one connection at a time.
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
-                    <Sheet>
-                      <SheetTrigger asChild>
-                        <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">Join Now</Button>
-                      </SheetTrigger>
-                      <SheetContent side="bottom" className="rounded-t-lg data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-[100%] data-[state=open]:duration-500 ease-out">
-                        <SheetHeader className="text-center">
-                          <SheetTitle>Join Campus Connect</SheetTitle>
-                          <SheetDescription>
-                            Sign in or create an account to connect with your campus.
-                          </SheetDescription>
-                        </SheetHeader>
-                        <div className="flex flex-col gap-4 p-4 items-center">
-                          <Button onClick={signInWithGoogle} variant="outline" className="w-full max-w-xs">
-                            <GoogleIcon className="mr-2 h-4 w-4" />
-                            Sign in with Google
-                          </Button>
-                          <Button onClick={signInWithGitHub} className="w-full max-w-xs">
-                            <Github className="mr-2 h-4 w-4" />
-                            Sign in with GitHub
-                          </Button>
-                        </div>
-                      </SheetContent>
-                    </Sheet>
+                  {user ? (
+                      <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                        <Link href="/feed">Go to Feed</Link>
+                      </Button>
+                    ) : (
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">Join Now</Button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="rounded-t-lg data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-[100%] data-[state=open]:duration-500 ease-out">
+                          <SheetHeader className="text-center">
+                            <SheetTitle>Join Campus Connect</SheetTitle>
+                            <SheetDescription>
+                              Sign in or create an account to connect with your campus.
+                            </SheetDescription>
+                          </SheetHeader>
+                          <div className="flex flex-col gap-4 p-4 items-center">
+                            <Button onClick={signInWithGoogle} variant="outline" className="w-full max-w-xs">
+                              <GoogleIcon className="mr-2 h-4 w-4" />
+                              Sign in with Google
+                            </Button>
+                            <Button onClick={signInWithGitHub} className="w-full max-w-xs">
+                              <Github className="mr-2 h-4 w-4" />
+                              Sign in with GitHub
+                            </Button>
+                          </div>
+                        </SheetContent>
+                      </Sheet>
+                  )}
                   <Button asChild size="lg" variant="outline">
                     <Link href="/feed">View the Feed</Link>
                   </Button>
