@@ -1,13 +1,14 @@
 'use client';
 
-import { auth } from '@/lib/firebase';
+import { auth, messaging } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { getUser, createUser } from '@/lib/actions/user.actions';
+import { getUser, createUser, updateUser } from '@/lib/actions/user.actions';
 import type { IUser } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
+import { getToken } from 'firebase/messaging';
 
 
 interface AuthContextType {
@@ -44,6 +45,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
 
+  const handlePushNotifications = useCallback(async (uid: string) => {
+    if (!messaging || typeof window === 'undefined' || !('Notification' in window)) {
+        console.log("Messaging not supported");
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+            if (fcmToken) {
+                await updateUser(uid, { fcmToken });
+            } else {
+                console.log('No registration token available. Request permission to generate one.');
+            }
+        } else {
+            console.log('Notification permission not granted.');
+        }
+    } catch (error) {
+        console.error('An error occurred while setting up push notifications.', error);
+    }
+  }, []);
+
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
       setUser(firebaseUser);
@@ -61,6 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setDbUser(mongoUser);
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
+
+        if (profileComplete) {
+            await handlePushNotifications(firebaseUser.uid);
+        }
+
       } catch (error) {
         console.error('Failed to process user:', error);
         setDbUser(null);
@@ -72,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileComplete(null);
     }
     setLoading(false);
-  }, []);
+  }, [handlePushNotifications]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);

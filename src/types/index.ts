@@ -16,6 +16,7 @@ export interface IUser {
     type: 'Point';
     coordinates: [number, number];
   };
+  fcmToken?: string;
 }
 
 export interface PostAuthor {
