@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import { IUser } from '@/types';
+import { IMessage, IUser } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 
 async function getUsersCollection(): Promise<Collection<IUser>> {
@@ -22,6 +22,13 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
   }
   return db.collection<IUser>('users');
 }
+
+async function getMessagesCollection(): Promise<Collection<Omit<IMessage, '_id'>>> {
+  const client = await clientPromise;
+  const db = client.db();
+  return db.collection<Omit<IMessage, '_id'>>('messages');
+}
+
 
 export async function getUser(uid: string): Promise<IUser | null> {
   const usersCollection = await getUsersCollection();
@@ -171,4 +178,25 @@ export async function getUsers(uids: string[]): Promise<IUser[]> {
     ...user,
     _id: user._id.toString(),
   })) as IUser[];
+}
+
+
+export async function sendMessage(fromUid: string, toUid: string, text: string): Promise<IMessage> {
+  const messagesCollection = await getMessagesCollection();
+  const conversationId = [fromUid, toUid].sort().join('_');
+  
+  const newMessageData: Omit<IMessage, '_id'> = {
+    conversationId,
+    from: fromUid,
+    to: toUid,
+    text,
+    createdAt: new Date(),
+  };
+
+  const result = await messagesCollection.insertOne(newMessageData);
+  
+  return {
+    ...newMessageData,
+    _id: result.insertedId.toString(),
+  };
 }

@@ -46,3 +46,12 @@ export interface ICircle {
   creatorUid: string;
   createdAt: Date;
 }
+
+export interface IMessage {
+  _id: string | ObjectId;
+  conversationId: string;
+  from: string; // UID of sender
+  to: string; // UID of receiver
+  text: string;
+  createdAt: Date;
+}

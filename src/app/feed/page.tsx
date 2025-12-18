@@ -47,16 +47,26 @@ export default function FeedPage() {
     const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
     // Also include circles user has posted in
     const postedInCircleNames = posts.filter(p => p.author.uid === dbUser.uid).map(p => p.circle);
-    return [...new Set([...createdCircleNames, ...postedInCircleNames, 'general'])];
+    const activityCircles = [...new Set([...createdCircleNames, ...postedInCircleNames])];
+    // Always include 'general' if it's not there and the user has some activity
+    if (activityCircles.length > 0 && !activityCircles.includes('general')) {
+      activityCircles.push('general');
+    }
+    return activityCircles;
   }, [circles, posts, dbUser]);
 
 
   const postsInUserCircles = useMemo(() => {
+    // If user has no activity, don't show any posts in this tab.
+    if(circlesWithUserActivity.length === 0) return [];
     return posts.filter(p => circlesWithUserActivity.includes(p.circle));
   }, [posts, circlesWithUserActivity]);
 
   const searchedCirclePosts = useMemo(() => {
-    if (!circleSearch.trim()) return posts;
+    if (!circleSearch.trim()) {
+        // Show nothing by default until user searches
+        return [];
+    }
     return posts.filter(p => p.circle.toLowerCase().includes(circleSearch.toLowerCase()));
   }, [posts, circleSearch]);
 
@@ -122,7 +132,7 @@ export default function FeedPage() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="everyone">Everyone</TabsTrigger>
           <TabsTrigger value="your-circles">Your Circles</TabsTrigger>
-          <TabsTrigger value="circles">Circles</TabsTrigger>
+          <TabsTrigger value="circles">Search Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone">
           <div className="space-y-6 mt-6">
@@ -131,21 +141,21 @@ export default function FeedPage() {
         </TabsContent>
         <TabsContent value="your-circles">
            <div className="space-y-6 mt-6">
-            {renderPosts(postsInUserCircles, "You haven't been active in any circles yet.")}
+            {renderPosts(postsInUserCircles, "Post in a circle or create one to see content here.")}
           </div>
         </TabsContent>
         <TabsContent value="circles">
             <div className="relative mt-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search for a circle..."
+                    placeholder="Search for a circle, e.g., 'study_group'"
                     value={circleSearch}
                     onChange={(e) => setCircleSearch(e.target.value)}
                     className="pl-10"
                 />
             </div>
            <div className="space-y-6 mt-6">
-            {renderPosts(searchedCirclePosts, "No posts found for this circle.")}
+            {renderPosts(searchedCirclePosts, circleSearch.trim() ? "No posts found for this circle." : "Type a circle name to find posts.")}
           </div>
         </TabsContent>
       </Tabs>
