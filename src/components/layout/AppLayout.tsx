@@ -3,8 +3,6 @@
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -37,7 +35,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/feed" legacyBehavior passHref>
+              <Link href="/feed">
                 <SidebarMenuButton isActive={pathname === '/feed'} tooltip="Feed">
                   <LayoutGrid />
                   <span>Feed</span>
@@ -45,15 +43,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-                <Link href="/nearby" legacyBehavior passHref>
-                    <SidebarMenuButton isActive={pathname === '/nearby'} tooltip="Nearby">
-                        <Users />
-                        <span>Nearby</span>
-                    </SidebarMenuButton>
-                </Link>
+              <Link href="/nearby">
+                <SidebarMenuButton isActive={pathname === '/nearby'} tooltip="Nearby">
+                  <Users />
+                  <span>Nearby</span>
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/profile" legacyBehavior passHref>
+              <Link href="/profile">
                 <SidebarMenuButton isActive={pathname === '/profile'} tooltip="Profile">
                   <User />
                   <span>Profile</span>
@@ -63,16 +61,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarHeader>
-            <div className="flex items-center gap-2">
-                <Avatar className='size-8'>
-                    <AvatarImage src={dbUser?.photoUrl} alt={dbUser?.name} />
-                    <AvatarFallback>{dbUser?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className='text-sm font-medium'>{dbUser?.name}</span>
-                <Button variant="ghost" size="icon" className="ml-auto" onClick={signOut}>
-                    <LogOut className='size-4' />
-                </Button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Avatar className="size-8">
+              <AvatarImage src={dbUser?.photoUrl} alt={dbUser?.name} />
+              <AvatarFallback>{dbUser?.name?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">{dbUser?.name}</span>
+            <Button variant="ghost" size="icon" className="ml-auto" onClick={signOut}>
+              <LogOut className="size-4" />
+            </Button>
+          </div>
         </SidebarHeader>
       </Sidebar>
       <SidebarInset>{children}</SidebarInset>
