@@ -9,16 +9,13 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { updateUser } from '@/lib/actions/user.actions';
-import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Loader2, LocateFixed } from 'lucide-react';
-import { getLocationCoordinates } from '@/ai/flows/location-input-assistance';
 
 const profileSchema = z.object({
   university: z.string().min(1, 'University is required'),
   major: z.string().min(1, 'Major is required'),
-  address: z.string(), // No longer strictly required if coords are fetched
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -30,7 +27,6 @@ type Coordinates = {
 
 export default function ProfilePage() {
   const { user, dbUser } = useAuth();
-  const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -40,31 +36,19 @@ export default function ProfilePage() {
     control,
     handleSubmit,
     formState: { errors },
-    setValue,
-    watch
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       university: dbUser?.university || '',
       major: dbUser?.major || '',
-      address: '',
     },
   });
-
-  const addressValue = watch('address');
-
-  // If user types an address, clear coordinates to re-enable AI lookup
-  useEffect(() => {
-    if (addressValue) {
-      setCoordinates(null);
-    }
-  }, [addressValue]);
 
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
       toast({
         title: 'Geolocation not supported',
-        description: "Your browser doesn't support location services.",
+        description: "Your browser doesn't support location services. Please use a different browser.",
         variant: 'destructive',
       });
       return;
@@ -75,18 +59,21 @@ export default function ProfilePage() {
       (position) => {
         const { latitude, longitude } = position.coords;
         setCoordinates({ latitude, longitude });
-        setValue('address', 'Location detected successfully!');
         setIsDetectingLocation(false);
         toast({
-          title: 'Location Detected',
-          description: 'Your coordinates have been captured.',
+          title: 'Location Detected!',
+          description: 'Your location has been saved.',
         });
       },
       (error) => {
         setIsDetectingLocation(false);
+        let description = 'Could not get your location. Please try again.';
+        if (error.code === error.PERMISSION_DENIED) {
+            description = 'Location permission denied. Please enable it in your browser settings to continue.'
+        }
         toast({
           title: 'Location Error',
-          description: error.message || 'Could not get your location. Please enter an address manually.',
+          description: description,
           variant: 'destructive',
         });
       }
@@ -103,10 +90,10 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!coordinates && !data.address) {
+    if (!coordinates) {
         toast({
             title: 'Location is required',
-            description: 'Please detect your location or enter an address.',
+            description: 'Please detect your location to continue.',
             variant: 'destructive'
         });
         return;
@@ -114,22 +101,12 @@ export default function ProfilePage() {
 
     setIsSubmitting(true);
     try {
-      let locationResult: Coordinates;
-
-      if (coordinates) {
-        // Use auto-detected coordinates
-        locationResult = coordinates;
-      } else {
-        // Fallback to AI geocoding
-        locationResult = await getLocationCoordinates({ address: data.address });
-      }
-      
       const updatedUserData = {
         university: data.university,
         major: data.major,
         location: {
           type: 'Point',
-          coordinates: [locationResult.longitude, locationResult.latitude],
+          coordinates: [coordinates.longitude, coordinates.latitude],
         },
       };
 
@@ -188,39 +165,29 @@ export default function ProfilePage() {
               {errors.major && <p className="text-sm text-destructive">{errors.major.message}</p>}
             </div>
             
-            <div className="space-y-2">
-                <Label htmlFor="address">Your Location</Label>
-                <div className="flex items-center gap-2">
-                    <Controller
-                        name="address"
-                        control={control}
-                        render={({ field }) => (
-                        <Input 
-                            id="address" 
-                            placeholder="e.g., 'Main Library, Example University'"
-                            {...field} 
-                            disabled={!!coordinates}
-                        />
-                        )}
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={handleDetectLocation}
-                        disabled={isDetectingLocation}
-                        aria-label="Detect location"
-                    >
-                        {isDetectingLocation ? <Loader2 className="animate-spin" /> : <LocateFixed />}
-                    </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                    Click the icon to detect your location, or enter an address/landmark for our AI to find you.
+            <div className="space-y-2 rounded-lg border p-4">
+                 <Label>Your Location</Label>
+                 <p className="text-sm text-muted-foreground pb-2">
+                    We need your location to connect you with students nearby.
                 </p>
-                {errors.address && !coordinates && <p className="text-sm text-destructive">{errors.address.message}</p>}
+                <Button
+                    type="button"
+                    variant={coordinates ? "secondary" : "default"}
+                    onClick={handleDetectLocation}
+                    disabled={isDetectingLocation}
+                    className="w-full"
+                >
+                    {isDetectingLocation ? <Loader2 className="animate-spin" /> : <LocateFixed />}
+                    {coordinates ? 'Location Detected Successfully' : 'Detect My Location'}
+                </Button>
+                {coordinates && (
+                    <p className="text-xs text-center text-green-600">
+                        You can now save your profile.
+                    </p>
+                )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !coordinates}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save and Continue'}
             </Button>
           </form>
