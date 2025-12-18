@@ -34,7 +34,7 @@ export async function createPost(content: string, circle: string, user: IUser): 
     circle: circle,
     createdAt: new Date(),
     likes: [],
-    comments: [], // Changed to an array of comment IDs
+    comments: [], // Always initialize as an empty array
   };
 
   const result = await postsCollection.insertOne(newPostData);
