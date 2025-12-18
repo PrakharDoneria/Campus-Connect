@@ -27,7 +27,6 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
@@ -106,14 +105,14 @@ export default function MessagesPage() {
     e.preventDefault();
     if (!newMessage.trim() || !dbUser || !activeConversation) return;
 
-    setIsSending(true);
+    const text = newMessage;
+    setNewMessage(''); // Optimistically clear input
+
     try {
-        await sendMessage(dbUser.uid, activeConversation.uid, newMessage);
-        setNewMessage('');
+        await sendMessage(dbUser.uid, activeConversation.uid, text);
     } catch (error) {
         console.error('Failed to send message:', error);
-    } finally {
-        setIsSending(false);
+        setNewMessage(text); // Restore message on error
     }
   }
 
@@ -184,7 +183,7 @@ export default function MessagesPage() {
               <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length > 0 ? (
                   messages.map(msg => (
-                    <div key={msg._id.toString()} className={cn("flex items-end gap-2", msg.from === dbUser.uid && "justify-end")}>
+                    <div key={msg._id.toString()} className={cn("flex items-end gap-2 animate-slide-up", msg.from === dbUser.uid && "justify-end")}>
                       {msg.from !== dbUser.uid && (
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
@@ -227,8 +226,8 @@ export default function MessagesPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                   />
-                  <Button type="submit" size="icon" className="absolute right-1" disabled={isSending || !newMessage.trim()}>
-                    {isSending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
+                  <Button type="submit" size="icon" className="absolute right-1" disabled={!newMessage.trim()}>
+                    <Send className="h-4 w-4" />
                   </Button>
                 </form>
               </CardFooter>

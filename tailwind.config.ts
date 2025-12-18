@@ -93,11 +93,22 @@ export default {
                 transform: 'translateX(100%)',
             },
         },
+        'slide-up': {
+          from: {
+            transform: 'translateY(10px)',
+            opacity: '0',
+          },
+          to: {
+            transform: 'translateY(0)',
+            opacity: '1',
+          },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         shimmer: 'shimmer 2s infinite',
+        'slide-up': 'slide-up 0.3s ease-out',
       },
     },
   },
