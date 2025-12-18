@@ -47,48 +47,55 @@ export default function MessagesPage() {
         setLoading(true);
         const friendUsers = await getUsers(dbUser.friends);
         
-        const conversationsWithLastMessage = await Promise.all(
-            friendUsers.map(async (friend) => {
-                let lastMessage: IMessage | null = null;
-                const conversationId = [dbUser.uid, friend.uid].sort().join('_');
-                const messagesCollection = collection(firestore, 'messages');
-                const q = query(
-                    messagesCollection,
-                    where('conversationId', '==', conversationId),
-                    orderBy('createdAt', 'desc'),
-                    limit(1)
-                );
+        const conversationsWithLastMessagePromises = friendUsers.map(async (friend) => {
+          return new Promise<ConversationWithLastMessage>((resolve) => {
+            const conversationId = [dbUser.uid, friend.uid].sort().join('_');
+            const messagesCollection = collection(firestore, 'messages');
+            const q = query(
+              messagesCollection,
+              where('conversationId', '==', conversationId),
+              orderBy('createdAt', 'desc'),
+              limit(1)
+            );
+    
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+              const lastMessage = snapshot.empty
+                ? null
+                : {
+                    _id: snapshot.docs[0].id,
+                    ...snapshot.docs[0].data(),
+                    createdAt: snapshot.docs[0].data().createdAt?.toDate() ?? new Date(),
+                  } as IMessage;
+    
+              setConversations(prev => {
+                const existingConvo = prev.find(c => c.uid === friend.uid);
+                let newConversations;
+                if (existingConvo) {
+                  newConversations = prev.map(c =>
+                    c.uid === friend.uid ? { ...c, lastMessage } : c
+                  );
+                } else {
+                  newConversations = [...prev, { ...friend, lastMessage }];
+                }
                 
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    if (!snapshot.empty) {
-                        const doc = snapshot.docs[0];
-                        lastMessage = {
-                            _id: doc.id,
-                            ...doc.data(),
-                            createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
-                        } as IMessage;
-                    }
-                    
-                    setConversations(prev => {
-                        const newConversations = prev.map(c => 
-                            c.uid === friend.uid ? { ...c, lastMessage } : c
-                        );
-                        // Sort by last message date
-                        newConversations.sort((a, b) => {
-                            const dateA = a.lastMessage?.createdAt ?? 0;
-                            const dateB = b.lastMessage?.createdAt ?? 0;
-                            return new Date(dateB).getTime() - new Date(dateA).getTime();
-                        });
-                        return newConversations;
-                    });
+                newConversations.sort((a, b) => {
+                    const dateA = a.lastMessage?.createdAt ?? 0;
+                    const dateB = b.lastMessage?.createdAt ?? 0;
+                    return new Date(dateB).getTime() - new Date(dateA).getTime();
                 });
-                unsubscribers.push(unsubscribe);
 
-                return { ...friend, lastMessage };
-            })
-        );
-        
-        setConversations(conversationsWithLastMessage);
+                return newConversations;
+              });
+              resolve({ ...friend, lastMessage });
+            }, (error) => {
+              console.warn(`Error fetching last message for ${friend.name}. This may be due to missing Firestore indexes. The app will function but conversation ordering may not be real-time.`, error.message);
+              resolve({ ...friend, lastMessage: null });
+            });
+            unsubscribers.push(unsubscribe);
+          });
+        });
+
+        const initialConversations = await Promise.all(conversationsWithLastMessagePromises);
         
         if (chatWithUserUid) {
             let chatUser = friendUsers.find(f => f.uid === chatWithUserUid);
@@ -97,12 +104,16 @@ export default function MessagesPage() {
             }
             if (chatUser) {
                 setActiveConversation(chatUser);
-                 if (!friendUsers.some(f => f.uid === chatUser.uid)) {
+                 if (!initialConversations.some(f => f.uid === chatUser.uid)) {
                     setConversations(prev => [{...chatUser, lastMessage: null}, ...prev]);
                 }
             }
-        } else if (conversationsWithLastMessage.length > 0) {
-            setActiveConversation(conversationsWithLastMessage[0]);
+        } else if (initialConversations.length > 0) {
+            setActiveConversation(initialConversations.sort((a, b) => {
+                const dateA = a.lastMessage?.createdAt ?? 0;
+                const dateB = b.lastMessage?.createdAt ?? 0;
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+            })[0]);
         }
 
         setLoading(false);
@@ -349,5 +360,7 @@ export default function MessagesPage() {
     </div>
   );
 }
+
+    
 
     

@@ -1,8 +1,9 @@
+
 'use server';
 
 import { firestore } from '@/lib/firebase';
 import { IMessage } from '@/types';
-import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 export async function sendMessage(fromUid: string, toUid: string, text: string): Promise<IMessage> {
   if (!fromUid || !toUid || !text.trim()) {
@@ -56,3 +57,5 @@ export async function markConversationAsRead(conversationId: string, currentUser
 
   await batch.commit();
 }
+
+    
