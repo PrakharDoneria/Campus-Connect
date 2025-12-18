@@ -55,11 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 email: firebaseUser.email || '',
                 name: firebaseUser.displayName || 'New User',
                 photoUrl: firebaseUser.photoURL || '',
-            } as Omit<IUser, '_id' | 'university' | 'major' | 'location'>;
+            } as Omit<IUser, '_id' | 'university' | 'major' | 'location' | 'gender'>;
             mongoUser = await createUser(newUser as any);
         }
         setDbUser(mongoUser);
-        const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location);
+        const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
       } catch (error) {
         console.error('Failed to process user:', error);

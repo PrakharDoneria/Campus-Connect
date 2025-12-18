@@ -1,6 +1,8 @@
 
 import type { ObjectId } from 'mongodb';
 
+export type Gender = 'male' | 'female' | 'other';
+
 export interface IUser {
   _id: string;
   uid: string;
@@ -9,6 +11,7 @@ export interface IUser {
   photoUrl?: string;
   university?: string;
   major?: string;
+  gender?: Gender;
   location?: {
     type: 'Point';
     coordinates: [number, number];

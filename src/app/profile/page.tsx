@@ -12,10 +12,15 @@ import { updateUser } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Loader2, LocateFixed } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import type { Gender } from '@/types';
 
 const profileSchema = z.object({
   university: z.string().min(1, 'University is required'),
   major: z.string().min(1, 'Major is required'),
+  gender: z.enum(['male', 'female', 'other'], {
+    required_error: 'Please select your gender.',
+  }),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -41,6 +46,7 @@ export default function ProfilePage() {
     defaultValues: {
       university: dbUser?.university || '',
       major: dbUser?.major || '',
+      gender: dbUser?.gender,
     },
   });
 
@@ -62,7 +68,7 @@ export default function ProfilePage() {
         setIsDetectingLocation(false);
         toast({
           title: 'Location Detected!',
-          description: 'Your location has been saved.',
+          description: 'Aakashvani from the sky says we got you.',
         });
       },
       (error) => {
@@ -104,6 +110,7 @@ export default function ProfilePage() {
       const updatedUserData = {
         university: data.university,
         major: data.major,
+        gender: data.gender as Gender,
         location: {
           type: 'Point',
           coordinates: [coordinates.longitude, coordinates.latitude],
@@ -114,7 +121,7 @@ export default function ProfilePage() {
 
       toast({
         title: 'Profile Updated!',
-        description: 'Your profile is now complete.',
+        description: "You're all set! Time to connect.",
       });
 
       window.location.href = '/feed';
@@ -139,9 +146,9 @@ export default function ProfilePage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
+          <CardTitle className="text-2xl">Finish your KYC...</CardTitle>
           <CardDescription>
-            Welcome to Campus Connect! Please fill out the details below to get started.
+            Just kidding! But please fill this out so we can find your tribe.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -165,6 +172,35 @@ export default function ProfilePage() {
               {errors.major && <p className="text-sm text-destructive">{errors.major.message}</p>}
             </div>
             
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Controller
+                name="gender"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="male" id="male" />
+                      <Label htmlFor="male">Male</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="female" id="female" />
+                      <Label htmlFor="female">Female</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="other" id="other" />
+                      <Label htmlFor="other">Other</Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              />
+              {errors.gender && <p className="text-sm text-destructive">{errors.gender.message}</p>}
+            </div>
+
             <div className="space-y-2 rounded-lg border p-4">
                  <Label>Your Location</Label>
                  <p className="text-sm text-muted-foreground pb-2">
