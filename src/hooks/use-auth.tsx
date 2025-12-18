@@ -1,3 +1,4 @@
+
 'use client';
 
 import { auth, messaging } from '@/lib/firebase';
@@ -36,7 +37,6 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 const publicRoutes = ['/feed'];
-const authRoutes = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -46,6 +46,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+
+  const handleFcmToken = useCallback(async (uid: string) => {
+    if (!messaging || typeof window === 'undefined' || !('Notification' in window)) {
+        return;
+    }
+    try {
+        const currentPermission = Notification.permission;
+        if (currentPermission === 'granted') {
+            const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+            if (fcmToken) {
+                await updateUser(uid, { fcmToken });
+            }
+        }
+    } catch (error) {
+        console.error('An error occurred while handling FCM token.', error);
+    }
+  }, []);
 
   const requestNotificationPermission = useCallback(async () => {
     if (!messaging || typeof window === 'undefined' || !('Notification' in window) || !user) {
@@ -60,14 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-            if (fcmToken) {
-                await updateUser(user.uid, { fcmToken });
-                toast({
-                    title: "Notifications Enabled!",
-                    description: "You'll now receive updates from Campus Connect."
-                });
-            }
+            await handleFcmToken(user.uid);
+            toast({
+                title: "Notifications Enabled!",
+                description: "You'll now receive updates from Campus Connect."
+            });
         } else {
             toast({
                 title: "Notifications Disabled",
@@ -83,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             variant: "destructive"
         });
     }
-  }, [user, toast]);
+  }, [user, toast, handleFcmToken]);
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
@@ -103,6 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
 
+        if (profileComplete) {
+            await handleFcmToken(firebaseUser.uid);
+        }
+
       } catch (error) {
         console.error('Failed to process user:', error);
         setDbUser(null);
@@ -114,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileComplete(null);
     }
     setLoading(false);
-  }, []);
+  }, [handleFcmToken]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
@@ -124,27 +142,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
     const isPublicRoute = publicRoutes.includes(pathname) || pathname === '/';
-    const isProfileRoute = pathname === '/profile';
+    const isProfileEditRoute = pathname === '/profile/edit';
+    
+    // Allow access to public profile pages
+    const isPublicProfileRoute = /^\/profile\/[a-zA-Z0-9]+$/.test(pathname);
 
     if (user) {
-      // If user is logged in
-      if (pathname === '/') {
+      if (isProfileComplete === false && !isProfileEditRoute) {
+        // If profile is not complete, redirect to the edit page.
+        router.push('/profile/edit');
+      } else if (isProfileComplete === true && isProfileEditRoute && !dbUser?.university) {
+        // This case handles when the user is on the edit page but the profile is already complete
+        // but it's their first time. We let them stay.
+      } else if (pathname === '/') {
         router.push('/feed');
-      } else if (isAuthRoute) {
-        router.push('/feed');
-      } else if (isProfileComplete === false && !isProfileRoute) {
-        router.push('/profile');
       }
     } else {
       // If user is not logged in
-      if (!isPublicRoute && !isAuthRoute && !isProfileRoute) {
+      if (!isPublicRoute && !isPublicProfileRoute) {
         router.push('/');
       }
     }
 
-  }, [user, isProfileComplete, loading, pathname, router]);
+  }, [user, isProfileComplete, loading, pathname, router, dbUser]);
 
   const signInWithProvider = async (provider: GithubAuthProvider | GoogleAuthProvider) => {
     setLoading(true);

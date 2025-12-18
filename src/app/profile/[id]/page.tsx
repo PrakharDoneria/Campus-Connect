@@ -91,7 +91,7 @@ export default function UserProfilePage() {
           <div className="flex justify-center gap-2 mt-4 sm:ml-auto">
             {isOwnProfile ? (
               <Button asChild variant="outline">
-                <Link href="/profile"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
+                <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
               </Button>
             ) : (
               <>
