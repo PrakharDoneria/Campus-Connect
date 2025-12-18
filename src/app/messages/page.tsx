@@ -14,7 +14,7 @@ import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, orderBy, collectionGroup } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -46,7 +46,13 @@ export default function MessagesPage() {
         if (!chatUser) {
             chatUser = await getUser(chatWithUserUid);
         }
-        setActiveConversation(chatUser);
+        if (chatUser) {
+            setActiveConversation(chatUser);
+            // Add user to conversations if not already a friend (e.g. direct link)
+            if (!friendUsers.some(f => f.uid === chatUser.uid)) {
+                setConversations(prev => [chatUser, ...prev]);
+            }
+        }
       } else if (friendUsers.length > 0) {
         setActiveConversation(friendUsers[0]);
       }
@@ -63,7 +69,10 @@ export default function MessagesPage() {
 
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+        setMessages([]);
+        return;
+    };
 
     const messagesCollection = collection(firestore, 'messages');
     const q = query(

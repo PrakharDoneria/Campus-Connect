@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { sendFriendRequest } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function UserCard({ user }: { user: IUser }) {
@@ -37,15 +37,13 @@ export function UserCard({ user }: { user: IUser }) {
     }
   };
 
-  const getFriendStatus = () => {
-    if (!dbUser || !user || !dbUser.friends || !dbUser.friendRequestsSent || !dbUser.friendRequestsReceived) return null;
+  const friendStatus = useMemo(() => {
+    if (!dbUser || !user) return null;
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
     if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
     return null;
-  };
-
-  const friendStatus = getFriendStatus();
+  }, [dbUser, user]);
 
   const renderFriendButton = () => {
     if (isSubmitting || loading) {
@@ -80,8 +78,10 @@ export function UserCard({ user }: { user: IUser }) {
         </CardContent>
         <div className="flex w-full gap-2 mt-4">
             {dbUser?.uid !== user.uid && renderFriendButton()}
-            <Button size="sm" variant="outline" className="flex-1" disabled>
-                <MessageSquare className="mr-2 h-4 w-4" />
+            <Button size="sm" variant="outline" className="flex-1" asChild>
+                <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message
+                </Link>
             </Button>
         </div>
         </Card>
