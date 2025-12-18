@@ -10,23 +10,6 @@ async function getDb() {
     return client.db();
 }
 
-async function ensureIndexes() {
-    const db = await getDb();
-    try {
-        // Index for messages to improve query performance
-        await db.collection('messages').createIndex(
-            { conversationId: 1, createdAt: 1 },
-            { name: 'conversation_messages_idx' }
-        );
-    } catch (e) {
-        console.warn("Could not create index on messages. This is expected if it already exists.");
-    }
-}
-
-// Call it once when the server starts
-ensureIndexes();
-
-
 async function getUsersCollection(): Promise<Collection<IUser>> {
   const db = await getDb();
   // Ensure the 2dsphere index exists
@@ -46,6 +29,15 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
 
 async function getMessagesCollection(): Promise<Collection<Omit<IMessage, '_id'>>> {
   const db = await getDb();
+  try {
+    // Index for messages to improve query performance
+    await db.collection('messages').createIndex(
+        { conversationId: 1, createdAt: 1 },
+        { name: 'conversation_messages_idx' }
+    );
+  } catch (e) {
+      console.warn("Could not create index on messages. This is expected if it already exists.");
+  }
   return db.collection<Omit<IMessage, '_id'>>('messages');
 }
 
@@ -225,3 +217,5 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
     _id: result.insertedId.toString(),
   };
 }
+
+    
