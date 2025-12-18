@@ -8,16 +8,17 @@ Campus Connect is a localized, open-source social network for college students. 
 - **Nearby Students Discovery**: Find and connect with other students on your campus within a configurable radius.
 - **Campus Feed**: A mobile-first social feed for sharing posts, events, and announcements with others at your university.
 - **AI-Powered Location**: Uses AI to convert human-readable addresses into geographical coordinates for profile setup.
+- **Real-time Chat**: Message your friends in real-time and start video calls instantly.
 - **Open Source**: Designed for contribution, with clear documentation and a modular architecture.
 
 ## Tech Stack
 
 - [Next.js](https://nextjs.org/) (App Router)
-- [Firebase Authentication](https://firebase.google.com/docs/auth)
+- [Firebase](https://firebase.google.com/) (Authentication, Firestore for real-time chat, Cloud Messaging)
 - [MongoDB Atlas](https://www.mongodb.com/atlas) (with `2dsphere` for geo-queries)
 - [Tailwind CSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
 - [Genkit](https://firebase.google.com/docs/genkit) (for AI features)
-- [Zod](https://zod.dev/)
+- [Zod](https://zod.dev/) (for schema validation)
 - [TypeScript](https://www.typescriptlang.org/)
 
 ## Getting Started
@@ -28,6 +29,7 @@ Campus Connect is a localized, open-source social network for college students. 
 - npm, yarn, or pnpm
 - A Firebase project
 - A MongoDB Atlas cluster
+- A Google AI API Key
 
 ### 1. Clone the repository
 
@@ -44,17 +46,12 @@ npm install
 
 ### 3. Set up environment variables
 
-Create a `.env.local` file in the root of the project by copying the example file:
-
-```bash
-cp .env.example .env.local
-```
-
-Now, fill in the required values in `.env.local`:
+Create a `.env` file in the root of the project by copying the example structure from `.env`. You will need to fill in the following values:
 
 - **Firebase**: Go to your Firebase project settings and copy your web app's configuration into the `NEXT_PUBLIC_FIREBASE_*` variables.
 - **MongoDB**: Get your connection string from your MongoDB Atlas dashboard and set it as `MONGODB_URI`. Make sure to add your IP address to the IP access list in Atlas.
 - **Google AI**: Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and set it as `GOOGLE_API_KEY`.
+- **Firebase VAPID Key**: In your Firebase project, go to Project Settings > Cloud Messaging and generate a new key pair under "Web configuration". Add this to `NEXT_PUBLIC_FIREBASE_VAPID_KEY`.
 
 ### 4. Set up MongoDB Index
 
@@ -77,4 +74,4 @@ The application will be available at `http://localhost:9002`.
 
 ## How to Contribute
 
-We welcome contributions! Please see our `CONTRIBUTING.md` file for guidelines on how to get involved.
+We welcome contributions from students and developers everywhere! Please see our `CONTRIBUTING.md` file for detailed guidelines on how to get involved.
