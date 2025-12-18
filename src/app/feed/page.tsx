@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { getPosts } from '@/lib/actions/post.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SidebarTrigger } from '../ui/sidebar';
 
 
 export default function FeedPage() {
@@ -41,14 +42,10 @@ export default function FeedPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Campus Feed</h1>
-        {user && (
-          <button onClick={signOut} className="text-sm text-primary hover:underline">
-            Sign Out
-          </button>
-        )}
-      </div>
+        <header className="flex items-center gap-4 mb-6 md:hidden">
+            <SidebarTrigger />
+            <h1 className="text-xl font-bold">Campus Feed</h1>
+        </header>
       
       {!isGuest && dbUser && <CreatePostForm user={dbUser} onPostCreated={handlePostCreated} />}
 
