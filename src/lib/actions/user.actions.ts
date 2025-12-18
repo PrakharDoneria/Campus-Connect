@@ -26,6 +26,19 @@ export async function getUser(uid: string): Promise<IUser | null> {
   return { ...user, _id: user._id.toString() } as unknown as IUser;
 }
 
+export async function getUserById(id: string): Promise<IUser | null> {
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
+  const usersCollection = await getUsersCollection();
+  const user = await usersCollection.findOne({ _id: new ObjectId(id) });
+  if (!user) {
+    return null;
+  }
+  return { ...user, _id: user._id.toString() } as unknown as IUser;
+}
+
+
 export async function createUser(user: Omit<IUser, '_id'>): Promise<IUser> {
   const usersCollection = await getUsersCollection();
   const result = await usersCollection.insertOne(user);
