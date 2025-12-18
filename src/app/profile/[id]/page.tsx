@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { notFound, useParams, useRouter } from 'next/navigation';
-import { getUser, sendFriendRequest } from '@/lib/actions/user.actions';
+import { getUser, sendFriendRequest, getUsers } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,11 +16,13 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { useToast } from '@/hooks/use-toast';
+import { FriendCard } from '@/components/common/FriendCard';
 
 export default function UserProfilePage() {
   const { user: currentUser, dbUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<IUser | null>(null);
   const [posts, setPosts] = useState<IPost[]>([]);
+  const [friends, setFriends] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -42,8 +44,13 @@ export default function UserProfilePage() {
         }
         setUser(fetchedUser);
 
-        const userPosts = await getPostsByAuthor(fetchedUser.uid);
+        const [userPosts, userFriends] = await Promise.all([
+            getPostsByAuthor(fetchedUser.uid),
+            getUsers(fetchedUser.friends)
+        ]);
+        
         setPosts(userPosts);
+        setFriends(userFriends);
 
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -168,8 +175,8 @@ export default function UserProfilePage() {
       
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="friends" asChild><Link href="/friends">Friends</Link></TabsTrigger>
+          <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+          <TabsTrigger value="friends">Friends ({friends.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
@@ -179,6 +186,17 @@ export default function UserProfilePage() {
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
                     <p>This user hasn't posted anything yet.</p>
+                </div>
+            )}
+        </TabsContent>
+        <TabsContent value="friends" className="mt-4">
+            {friends.length > 0 ? (
+                <div className="space-y-4">
+                    {friends.map(friend => <FriendCard key={friend.uid} user={friend} />)}
+                </div>
+            ) : (
+                <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
+                    <p>This user doesn't have any friends yet.</p>
                 </div>
             )}
         </TabsContent>
