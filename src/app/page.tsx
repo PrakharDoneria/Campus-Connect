@@ -12,7 +12,7 @@ export default function Home() {
     {
       icon: <GraduationCap className="h-10 w-10 text-primary" />,
       title: 'Exclusive to Students',
-      description: 'Sign up with your .edu email to join a verified community of college students from your campus and beyond.',
+      description: 'Sign up to join a verified community of college students from your campus and beyond.',
     },
     {
       icon: <Compass className="h-10 w-10 text-primary" />,
@@ -44,10 +44,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col gap-4 sm:flex-row">
                   <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Link href="/signup">Join Now</Link>
-                  </Button>
-                  <Button asChild size="lg" variant="outline">
-                    <Link href="/login">Sign In</Link>
+                    <Link href="/feed">Join with GitHub</Link>
                   </Button>
                 </div>
               </div>

@@ -1,18 +1,22 @@
 'use client';
 
 import { auth } from '@/lib/firebase';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getUser } from '@/lib/actions/user.actions';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { getUser, createUser } from '@/lib/actions/user.actions';
 import type { IUser } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
+import { GraduationCapIcon } from '@/components/icons';
+import { useToast } from './use-toast';
+
 
 interface AuthContextType {
   user: User | null;
   dbUser: IUser | null;
   loading: boolean;
   isProfileComplete: boolean | null;
+  signInWithGitHub: () => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,11 +24,13 @@ const AuthContext = createContext<AuthContextType>({
   dbUser: null,
   loading: true,
   isProfileComplete: null,
+  signInWithGitHub: () => {},
+  signOut: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-const publicRoutes = ['/', '/login', '/signup'];
+const publicRoutes = ['/'];
 const authRoutes = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -34,46 +40,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+
+  const handleUser = useCallback(async (firebaseUser: User | null) => {
+    if (firebaseUser) {
+      setUser(firebaseUser);
+      try {
+        let mongoUser = await getUser(firebaseUser.uid);
+        if (!mongoUser) {
+            const newUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: firebaseUser.displayName || 'New User',
+                photoUrl: firebaseUser.photoURL || '',
+            } as Omit<IUser, '_id' | 'university' | 'major' | 'location'>;
+            mongoUser = await createUser(newUser as any);
+        }
+        setDbUser(mongoUser);
+        const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location);
+        setIsProfileComplete(profileComplete);
+      } catch (error) {
+        console.error('Failed to process user:', error);
+        setDbUser(null);
+        setIsProfileComplete(false);
+      }
+    } else {
+      setUser(null);
+      setDbUser(null);
+      setIsProfileComplete(null);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        try {
-          const mongoUser = await getUser(user.uid);
-          setDbUser(mongoUser);
-          const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location);
-          setIsProfileComplete(profileComplete);
-        } catch (error) {
-          console.error('Failed to fetch user from DB:', error);
-          setDbUser(null);
-          setIsProfileComplete(false);
-        }
-      } else {
-        setDbUser(null);
-        setIsProfileComplete(null);
-      }
-      setLoading(false);
-    });
-
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
-  }, []);
+  }, [handleUser]);
 
   useEffect(() => {
     if (loading) return;
 
+    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
     const isPublicRoute = publicRoutes.includes(pathname);
-    const isAuthRoute = authRoutes.includes(pathname);
-    
+
     if (user && isAuthRoute) {
-      router.push('/feed');
-    } else if (user && !isProfileComplete && pathname !== '/profile') {
-      router.push('/profile');
-    } else if (!user && !isPublicRoute) {
-      router.push('/login');
+        router.push('/feed');
+    } else if (user && isProfileComplete === false && pathname !== '/profile') {
+        router.push('/profile');
+    } else if (!user && !isPublicRoute && !isAuthRoute) {
+        router.push('/');
     }
-  }, [user, dbUser, loading, pathname, router, isProfileComplete]);
-  
+
+  }, [user, isProfileComplete, loading, pathname, router]);
+
+  const signInWithGitHub = async () => {
+    setLoading(true);
+    try {
+      const provider = new GithubAuthProvider();
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the rest
+    } catch (error: any) {
+      console.error('GitHub sign-in error:', error);
+      toast({
+        title: 'Authentication Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    await firebaseSignOut(auth);
+    router.push('/');
+  };
+
   if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -86,29 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signOut }}>
       {children}
     </AuthContext.Provider>
-  );
-}
-
-function GraduationCapIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.838l8.57 3.908a2 2 0 0 0 1.66 0z" />
-      <path d="M22 10v6" />
-      <path d="M6 12v5c0 3 4 5 6 5s6-2 6-5v-5" />
-    </svg>
   );
 }
