@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -13,6 +12,7 @@ import {
   Share2,
   User,
   Users,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -36,12 +36,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { usePathname } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { Badge } from '../ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
-function NavLinks() {
+
+function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const { toast } = useToast();
+  const { unreadMessagesCount } = useAuth();
 
    const handleInvite = async () => {
+    if (onLinkClick) onLinkClick();
     const inviteUrl = window.location.origin;
     if (navigator.share) {
       try {
@@ -64,33 +70,45 @@ function NavLinks() {
 
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
-    { href: '/nearby', icon: <Users />, text: 'Nearby' },
+    { href: '/nearby', icon: <Compass />, text: 'Nearby' },
     { href: '/friends', icon: <Users />, text: 'Friends' },
-    { href: '/messages', icon: <MessageSquare />, text: 'Messages' },
+    { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
   ];
 
   return (
-    <nav className="flex flex-col gap-2 p-4">
-      {navItems.map((item) => (
-        <Button
-          key={item.href}
-          variant={pathname === item.href ? 'secondary' : 'ghost'}
-          asChild
-          className="justify-start"
-        >
-          <Link href={item.href}>
-            {item.icon}
-            <span>{item.text}</span>
-          </Link>
-        </Button>
-      ))}
+    <nav className="flex flex-col gap-2 p-4 md:flex-row md:p-0">
+      <TooltipProvider>
+        {navItems.map((item) => (
+          <Tooltip key={item.href}>
+            <TooltipTrigger asChild>
+                <Button
+                    variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
+                    asChild
+                    className="justify-start md:justify-center md:w-12 md:h-12 md:rounded-full"
+                    onClick={onLinkClick}
+                >
+                <Link href={item.href} className="relative">
+                    {item.icon}
+                    <span className='md:hidden ml-2'>{item.text}</span>
+                    {item.badge && item.badge > 0 ? (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 md:h-4 md:w-4">{item.badge}</Badge>
+                    ) : null}
+                </Link>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="hidden md:block">
+                <p>{item.text}</p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </TooltipProvider>
        <Button
           variant='ghost'
           onClick={handleInvite}
-          className="justify-start"
+          className="justify-start md:hidden"
         >
             <Share2 />
-            <span>Invite Friend</span>
+            <span className="ml-2">Invite Friend</span>
         </Button>
     </nav>
   );
@@ -99,6 +117,8 @@ function NavLinks() {
 export default function LandingHeader() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut, dbUser } = useAuth();
   const isMobile = useIsMobile();
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -112,31 +132,18 @@ export default function LandingHeader() {
             (user && dbUser ? (
               <>
                 {isMobile ? (
-                  <Sheet>
+                  <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                       <Button variant="ghost" size="icon">
                         <PanelLeft />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left">
-                      <SheetHeader>
-                        <SheetTitle>
-                          <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-                            <GraduationCap className="h-6 w-6 text-primary" />
-                            <span>Campus Connect</span>
-                          </Link>
-                        </SheetTitle>
-                      </SheetHeader>
-                      <NavLinks />
+                    <SheetContent side="bottom" className="rounded-t-2xl h-auto">
+                        <NavLinks onLinkClick={() => setIsSheetOpen(false)} />
                     </SheetContent>
                   </Sheet>
                 ) : (
-                  <div className="hidden md:flex items-center gap-2">
-                     <Button variant="ghost" asChild><Link href="/feed">Feed</Link></Button>
-                     <Button variant="ghost" asChild><Link href="/nearby">Nearby</Link></Button>
-                     <Button variant="ghost" asChild><Link href="/friends">Friends</Link></Button>
-                     <Button variant="ghost" asChild><Link href="/messages">Messages</Link></Button>
-                  </div>
+                  <NavLinks />
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

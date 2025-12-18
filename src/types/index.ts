@@ -1,4 +1,3 @@
-
 import type { ObjectId } from 'mongodb';
 
 export type Gender = 'male' | 'female' | 'other';
@@ -55,4 +54,5 @@ export interface IMessage {
   to: string; // UID of receiver
   text: string;
   createdAt: Date;
+  read: boolean;
 }

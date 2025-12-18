@@ -1,15 +1,15 @@
-
 'use client';
 
-import { auth, messaging } from '@/lib/firebase';
+import { auth, messaging, firestore } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { getUser, createUser, updateUser } from '@/lib/actions/user.actions';
-import type { IUser } from '@/types';
+import type { IUser, IMessage } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import { getToken } from 'firebase/messaging';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
 
 
 interface AuthContextType {
@@ -21,6 +21,7 @@ interface AuthContextType {
   signInWithGoogle: () => void;
   signOut: () => void;
   requestNotificationPermission: () => Promise<void>;
+  unreadMessagesCount: number;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: () => {},
   signOut: () => {},
   requestNotificationPermission: async () => {},
+  unreadMessagesCount: 0,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [dbUser, setDbUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -143,6 +146,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleUser]);
 
   useEffect(() => {
+    if (!dbUser) {
+      setUnreadMessagesCount(0);
+      return;
+    }
+
+    const messagesRef = collection(firestore, 'messages');
+    const q = query(messagesRef, where('to', '==', dbUser.uid), where('read', '==', false));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unreadConversations = new Set<string>();
+        snapshot.forEach(doc => {
+            unreadConversations.add(doc.data().conversationId);
+        });
+        setUnreadMessagesCount(unreadConversations.size);
+    });
+
+    return () => unsubscribe();
+  }, [dbUser]);
+
+
+  useEffect(() => {
     if (loading) return;
 
     const isPublicRoute = publicRoutes.includes(pathname) || pathname === '/';
@@ -163,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // If user is not logged in
-      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends') {
+      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && pathname !== '/messages') {
         router.push('/');
       }
     }
@@ -200,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount }}>
       {children}
     </AuthContext.Provider>
   );

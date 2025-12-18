@@ -1,9 +1,8 @@
-
 'use server';
 
 import { firestore } from '@/lib/firebase';
 import { IMessage } from '@/types';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, query, where, getDocs } from 'firebase/firestore';
 
 export async function sendMessage(fromUid: string, toUid: string, text: string): Promise<IMessage> {
   if (!fromUid || !toUid || !text.trim()) {
@@ -19,6 +18,7 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
     to: toUid,
     text,
     createdAt: serverTimestamp(),
+    read: false,
   };
 
   const docRef = await addDoc(messagesCollection, newMessageData);
@@ -29,6 +29,30 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
     from: fromUid,
     to: toUid,
     text,
+    read: false,
     createdAt: new Date(), // This is an approximation, client-side date
   };
+}
+
+
+export async function markConversationAsRead(conversationId: string, currentUserId: string): Promise<void> {
+  const messagesRef = collection(firestore, 'messages');
+  const q = query(
+    messagesRef,
+    where('conversationId', '==', conversationId),
+    where('to', '==', currentUserId),
+    where('read', '==', false)
+  );
+
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    return;
+  }
+
+  const batch = writeBatch(firestore);
+  querySnapshot.forEach(doc => {
+    batch.update(doc.ref, { read: true });
+  });
+
+  await batch.commit();
 }
