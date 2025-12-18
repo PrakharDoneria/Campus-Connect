@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -9,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageSquare, Send, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { getUser, getUsers, sendMessage } from '@/lib/actions/user.actions';
+import { getUser, getUsers } from '@/lib/actions/user.actions';
+import { sendMessage } from '@/lib/actions/message.actions';
 import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
 import { Shimmer } from '@/components/common/Shimmer';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -84,9 +84,11 @@ export default function MessagesPage() {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const newMessages: IMessage[] = [];
         querySnapshot.forEach((doc) => {
+            const data = doc.data();
             newMessages.push({
                 _id: doc.id,
-                ...doc.data()
+                ...data,
+                createdAt: data.createdAt.toDate(), // Convert Firestore Timestamp to Date
             } as IMessage);
         });
         setMessages(newMessages);

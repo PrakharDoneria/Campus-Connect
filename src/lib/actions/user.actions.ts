@@ -27,20 +27,6 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
   return db.collection<IUser>('users');
 }
 
-async function getMessagesCollection(): Promise<Collection<Omit<IMessage, '_id'>>> {
-  const db = await getDb();
-  try {
-    // Index for messages to improve query performance
-    await db.collection('messages').createIndex(
-        { conversationId: 1, createdAt: 1 },
-        { name: 'conversation_messages_idx' }
-    );
-  } catch (e) {
-      console.warn("Could not create index on messages. This is expected if it already exists.");
-  }
-  return db.collection<Omit<IMessage, '_id'>>('messages');
-}
-
 
 export async function getUser(uid: string): Promise<IUser | null> {
   const usersCollection = await getUsersCollection();
@@ -196,26 +182,3 @@ export async function getUsers(uids: string[]): Promise<IUser[]> {
     _id: user._id.toString(),
   })) as IUser[];
 }
-
-
-export async function sendMessage(fromUid: string, toUid: string, text: string): Promise<IMessage> {
-  const messagesCollection = await getMessagesCollection();
-  const conversationId = [fromUid, toUid].sort().join('_');
-  
-  const newMessageData: Omit<IMessage, '_id'> = {
-    conversationId,
-    from: fromUid,
-    to: toUid,
-    text,
-    createdAt: new Date(),
-  };
-
-  const result = await messagesCollection.insertOne(newMessageData);
-  
-  return {
-    ...newMessageData,
-    _id: result.insertedId.toString(),
-  };
-}
-
-    
