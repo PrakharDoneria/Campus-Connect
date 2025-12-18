@@ -6,8 +6,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { getUser, createUser } from '@/lib/actions/user.actions';
 import type { IUser } from '@/types';
-import { GraduationCapIcon } from '@/components/icons';
 import { useToast } from './use-toast';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 
 interface AuthContextType {
@@ -116,14 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   if (loading) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <GraduationCapIcon className="h-12 w-12 animate-pulse text-primary" />
-                <p className="text-muted-foreground">Loading Campus Connect...</p>
-            </div>
-        </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
