@@ -64,17 +64,20 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
   const [newComment, setNewComment] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentsFetched, setCommentsFetched] = useState(false);
 
   const timestamp = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const editedTimestamp = post.editedAt ? formatDistanceToNow(new Date(post.editedAt), { addSuffix: true }) : null;
 
   useEffect(() => {
-    if (showComments) {
+    // Only fetch comments if there are any and they haven't been fetched yet
+    if (post.comments.length > 0 && !commentsFetched) {
       const fetchComments = async () => {
         setIsLoadingComments(true);
         try {
           const fetchedComments = await getCommentsByPost(post._id.toString());
           setComments(fetchedComments);
+          setCommentsFetched(true);
         } catch (error) {
           toast({ title: 'Error', description: 'Could not fetch comments.' });
         } finally {
@@ -83,7 +86,8 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
       };
       fetchComments();
     }
-  }, [showComments, post._id, toast]);
+  }, [post._id, post.comments.length, commentsFetched, toast]);
+
 
   const handleLike = async () => {
     if (isGuest || !user) {
@@ -172,7 +176,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
 
   const isLikedByCurrentUser = user && post.likes.includes(user.uid);
   const isAuthor = user && post.author.uid === user.uid;
-  const commentCount = Array.isArray(post.comments) ? post.comments.length : (comments.length > 0 ? comments.length : 0);
+  const commentCount = Array.isArray(post.comments) ? post.comments.length : 0;
 
   return (
     <>
