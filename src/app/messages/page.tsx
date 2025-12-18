@@ -17,7 +17,6 @@ import { cn } from '@/lib/utils';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MessagesPage() {
@@ -113,17 +112,15 @@ export default function MessagesPage() {
     const textToSend = content || newMessage;
     if (!textToSend.trim() || !dbUser || !activeConversation || isSending) return;
 
-    setIsSending(true);
-    setNewMessage(''); // Optimistically clear input
+    const optimisticNewMessage = textToSend;
+    setNewMessage(''); 
 
     try {
-        await sendMessage(dbUser.uid, activeConversation.uid, textToSend);
+        await sendMessage(dbUser.uid, activeConversation.uid, optimisticNewMessage);
     } catch (error) {
         console.error('Failed to send message:', error);
-        setNewMessage(textToSend); // Restore message on error
+        setNewMessage(optimisticNewMessage); 
         toast({ title: 'Error', description: 'Failed to send message.', variant: 'destructive' });
-    } finally {
-        setIsSending(false);
     }
   }
 
@@ -195,9 +192,10 @@ export default function MessagesPage() {
                     activeConversation?.uid === convoUser.uid && "bg-muted text-primary-foreground"
                   )}
                 >
-                  <Avatar className="h-10 w-10 border-2",
-                     activeConversation?.uid === convoUser.uid ? "border-primary" : "border-transparent"
-                  >
+                  <Avatar className={cn(
+                    "h-10 w-10 border-2",
+                    activeConversation?.uid === convoUser.uid ? "border-primary" : "border-transparent"
+                  )}>
                     <AvatarImage src={convoUser.photoUrl} alt={convoUser.name} />
                     <AvatarFallback>{convoUser.name.charAt(0)}</AvatarFallback>
                   </Avatar>
@@ -273,8 +271,8 @@ export default function MessagesPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                   />
-                  <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full" disabled={!newMessage.trim() || isSending}>
-                    {isSending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
+                  <Button type="submit" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full" disabled={!newMessage.trim()}>
+                    <Send className="h-4 w-4" />
                   </Button>
                 </form>
               </CardFooter>
