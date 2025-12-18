@@ -66,7 +66,9 @@ export function PostCard({ post, isGuest = false, onPostUpdate }: PostCardProps)
           </Avatar>
           <div>
             <div className="flex items-center gap-2 text-sm">
-                <p className="font-semibold">{post.author.name}</p>
+                <Link href={`/profile/${post.author.uid}`} className="font-semibold hover:underline">
+                  {post.author.name}
+                </Link>
                 <span className="text-muted-foreground">•</span>
                 <Link href={`/c/${post.circle}`} className="text-muted-foreground hover:underline">
                     c/{post.circle}

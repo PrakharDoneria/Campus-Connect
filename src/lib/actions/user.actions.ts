@@ -14,6 +14,12 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
   } catch (e) {
     console.warn("Could not create 2dsphere index on users collection. This is expected if it already exists.");
   }
+  // Ensure index on uid for faster lookups
+  try {
+      await db.collection<IUser>('users').createIndex({ uid: 1 }, { unique: true });
+  } catch (e) {
+      console.warn("Could not create unique index on users collection uid. This is expected if it already exists.");
+  }
   return db.collection<IUser>('users');
 }
 
@@ -21,6 +27,11 @@ export async function getUser(uid: string): Promise<IUser | null> {
   const usersCollection = await getUsersCollection();
   const user = await usersCollection.findOne({ uid });
   if (!user) {
+    // Fallback for profiles that are referenced by Mongo ID instead of UID
+    if (ObjectId.isValid(uid)) {
+        const userById = await getUserById(uid);
+        return userById;
+    }
     return null;
   }
   // Convert _id to string for serialization

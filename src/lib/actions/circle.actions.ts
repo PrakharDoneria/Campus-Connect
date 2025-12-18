@@ -40,10 +40,15 @@ export async function createCircle(
   if (!result.insertedId) {
       throw new Error("Failed to create circle.");
   }
+  
+  const createdCircle = {
+    ...newCircleData,
+    _id: result.insertedId,
+  };
 
   return {
-    ...newCircleData,
-    _id: result.insertedId.toString(),
+    ...createdCircle,
+    _id: createdCircle._id.toString(),
   } as ICircle;
 }
 
@@ -70,4 +75,18 @@ export async function getCircles(): Promise<ICircle[]> {
         ...circle,
         _id: circle._id.toString(),
     })) as ICircle[];
+}
+
+export async function getCircleByName(name: string): Promise<ICircle | null> {
+  const circlesCollection = await getCirclesCollection();
+  const circle = await circlesCollection.findOne({ name });
+
+  if (!circle) {
+    return null;
+  }
+
+  return {
+    ...circle,
+    _id: circle._id.toString(),
+  } as ICircle;
 }

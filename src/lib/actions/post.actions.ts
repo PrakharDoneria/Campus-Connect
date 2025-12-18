@@ -41,9 +41,14 @@ export async function createPost(content: string, circle: string, user: IUser): 
       throw new Error('Failed to create the post.');
   }
 
-  return {
+  const createdPost = {
     ...newPostData,
-    _id: result.insertedId.toString(),
+    _id: result.insertedId,
+  }
+
+  return {
+    ...createdPost,
+    _id: createdPost._id.toString(),
   } as IPost;
 }
 
@@ -56,6 +61,24 @@ export async function getPosts(): Promise<IPost[]> {
         ...post,
         _id: post._id.toString(),
     })) as IPost[];
+}
+
+export async function getPostsByAuthor(authorUid: string): Promise<IPost[]> {
+  const postsCollection = await getPostsCollection();
+  const posts = await postsCollection.find({ 'author.uid': authorUid }).sort({ createdAt: -1 }).toArray();
+  return posts.map(post => ({
+    ...post,
+    _id: post._id.toString(),
+  })) as IPost[];
+}
+
+export async function getPostsByCircle(circleName: string): Promise<IPost[]> {
+  const postsCollection = await getPostsCollection();
+  const posts = await postsCollection.find({ circle: circleName }).sort({ createdAt: -1 }).toArray();
+  return posts.map(post => ({
+    ...post,
+    _id: post._id.toString(),
+  })) as IPost[];
 }
 
 export async function toggleLikePost(postId: string, userId: string): Promise<boolean> {
