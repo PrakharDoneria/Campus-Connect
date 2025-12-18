@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,11 +22,34 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { NotificationPermissionPrompt } from '../common/NotificationPermissionPrompt';
 
+function MobileHeader() {
+  const { dbUser } = useAuth();
+  return (
+    <header className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b bg-background px-4">
+      <div className="flex items-center gap-2">
+        <SidebarTrigger>
+          <PanelLeft />
+        </SidebarTrigger>
+        <Link href="/feed" className="flex items-center gap-2 font-bold text-lg">
+          <GraduationCap className="h-6 w-6 text-primary" />
+          <span className="sr-only">Campus Connect</span>
+        </Link>
+      </div>
+       <Link href="/profile">
+        <Avatar className="size-8">
+          <AvatarImage src={dbUser?.photoUrl} alt={dbUser?.name} />
+          <AvatarFallback>{dbUser?.name?.charAt(0)}</AvatarFallback>
+        </Avatar>
+       </Link>
+    </header>
+  );
+}
+
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, dbUser, signOut } = useAuth();
+  const { dbUser, signOut } = useAuth();
   const pathname = usePathname();
   const { toast } = useToast();
-  const isMobile = useIsMobile();
 
   const handleInvite = async () => {
     const inviteUrl = window.location.origin;
@@ -50,24 +74,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="md:hidden flex items-center justify-between p-2 border-b bg-background">
-        <div className="flex items-center gap-2">
-            <SidebarTrigger>
-                <PanelLeft />
-            </SidebarTrigger>
-            <GraduationCap className="size-6 text-primary" />
-            <span className="text-lg font-semibold">Campus Connect</span>
-        </div>
-        <Avatar className="size-8">
-            <AvatarImage src={dbUser?.photoUrl} alt={dbUser?.name} />
-            <AvatarFallback>{dbUser?.name?.charAt(0)}</AvatarFallback>
-        </Avatar>
-      </div>
-
       <Sidebar>
-        <SidebarHeader className="hidden md:flex">
+        <SidebarHeader>
           <div className="flex items-center gap-2">
-            <SidebarTrigger />
+            <SidebarTrigger className="md:hidden"/>
             <GraduationCap className="size-6 text-primary" />
             <span className="text-lg font-semibold">Campus Connect</span>
           </div>
@@ -106,7 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <SidebarHeader className="hidden md:flex">
+        <SidebarHeader className="mt-auto">
           <div className="flex items-center gap-2">
             <Avatar className="size-8">
               <AvatarImage src={dbUser?.photoUrl} alt={dbUser?.name} />
@@ -120,9 +130,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
       </Sidebar>
       <SidebarInset>
+        <MobileHeader />
         <NotificationPermissionPrompt />
         {children}
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
