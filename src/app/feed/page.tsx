@@ -6,13 +6,14 @@ import { PostCard } from '@/components/common/PostCard';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { IPost, ICircle } from '@/types';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Search } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { getPosts } from '@/lib/actions/post.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from '@/components/ui/input';
 
 
 export default function FeedPage() {
@@ -20,6 +21,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<IPost[]>([]);
   const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [circleSearch, setCircleSearch] = useState('');
   const isGuest = !user;
 
   useEffect(() => {
@@ -43,13 +45,20 @@ export default function FeedPage() {
   const circlesWithUserActivity = useMemo(() => {
     if (!dbUser) return [];
     const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
+    // Also include circles user has posted in
     const postedInCircleNames = posts.filter(p => p.author.uid === dbUser.uid).map(p => p.circle);
-    return [...new Set([...createdCircleNames, ...postedInCircleNames])];
+    return [...new Set([...createdCircleNames, ...postedInCircleNames, 'general'])];
   }, [circles, posts, dbUser]);
+
 
   const postsInUserCircles = useMemo(() => {
     return posts.filter(p => circlesWithUserActivity.includes(p.circle));
   }, [posts, circlesWithUserActivity]);
+
+  const searchedCirclePosts = useMemo(() => {
+    if (!circleSearch.trim()) return posts;
+    return posts.filter(p => p.circle.toLowerCase().includes(circleSearch.toLowerCase()));
+  }, [posts, circleSearch]);
 
 
   const handlePostCreated = (newPost: IPost) => {
@@ -65,7 +74,7 @@ export default function FeedPage() {
   };
 
 
-  const renderPosts = (postsToRender: IPost[]) => {
+  const renderPosts = (postsToRender: IPost[], emptyMessage: string) => {
     if (loading) {
       return (
         <>
@@ -80,8 +89,8 @@ export default function FeedPage() {
 
     if (limitedPosts.length === 0) {
       return (
-        <div className="text-center py-10 text-muted-foreground">
-          <p>No posts yet. Be the first to share something!</p>
+        <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card mt-6">
+          <p>{emptyMessage}</p>
         </div>
       );
     }
@@ -110,18 +119,33 @@ export default function FeedPage() {
       )}
       
        <Tabs defaultValue="everyone" className="mt-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="everyone">Everyone</TabsTrigger>
           <TabsTrigger value="your-circles">Your Circles</TabsTrigger>
+          <TabsTrigger value="circles">Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone">
           <div className="space-y-6 mt-6">
-            {renderPosts(posts)}
+            {renderPosts(posts, "No posts yet. Be the first to share something!")}
           </div>
         </TabsContent>
         <TabsContent value="your-circles">
            <div className="space-y-6 mt-6">
-            {renderPosts(postsInUserCircles)}
+            {renderPosts(postsInUserCircles, "You haven't been active in any circles yet.")}
+          </div>
+        </TabsContent>
+        <TabsContent value="circles">
+            <div className="relative mt-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                    placeholder="Search for a circle..."
+                    value={circleSearch}
+                    onChange={(e) => setCircleSearch(e.target.value)}
+                    className="pl-10"
+                />
+            </div>
+           <div className="space-y-6 mt-6">
+            {renderPosts(searchedCirclePosts, "No posts found for this circle.")}
           </div>
         </TabsContent>
       </Tabs>
