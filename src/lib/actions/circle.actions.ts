@@ -43,8 +43,8 @@ export async function createCircle(
 
   return {
     ...newCircleData,
-    _id: result.insertedId,
-  };
+    _id: result.insertedId.toString(),
+  } as ICircle;
 }
 
 export async function getCircles(): Promise<ICircle[]> {

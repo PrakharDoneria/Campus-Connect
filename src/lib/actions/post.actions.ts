@@ -39,8 +39,8 @@ export async function createPost(content: string, circle: string, user: IUser): 
   
   return {
     ...newPostData,
-    _id: result.insertedId,
-  };
+    _id: result.insertedId.toString(),
+  } as IPost;
 }
 
 export async function getPosts(): Promise<IPost[]> {
