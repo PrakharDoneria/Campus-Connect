@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { NotificationPermissionPrompt } from '../common/NotificationPermissionPrompt';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, dbUser, signOut } = useAuth();
@@ -118,7 +119,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
       </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <NotificationPermissionPrompt />
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }

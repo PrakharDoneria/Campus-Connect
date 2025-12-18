@@ -19,6 +19,7 @@ interface AuthContextType {
   signInWithGitHub: () => void;
   signInWithGoogle: () => void;
   signOut: () => void;
+  requestNotificationPermission: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGitHub: () => {},
   signInWithGoogle: () => {},
   signOut: () => {},
+  requestNotificationPermission: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -45,9 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
 
-  const handlePushNotifications = useCallback(async (uid: string) => {
-    if (!messaging || typeof window === 'undefined' || !('Notification' in window)) {
-        console.log("Messaging not supported");
+  const requestNotificationPermission = useCallback(async () => {
+    if (!messaging || typeof window === 'undefined' || !('Notification' in window) || !user) {
+        toast({
+            title: "Notifications not supported",
+            description: "Your browser does not support push notifications.",
+            variant: "destructive"
+        });
         return;
     }
 
@@ -56,17 +62,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (permission === 'granted') {
             const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
             if (fcmToken) {
-                await updateUser(uid, { fcmToken });
-            } else {
-                console.log('No registration token available. Request permission to generate one.');
+                await updateUser(user.uid, { fcmToken });
+                toast({
+                    title: "Notifications Enabled!",
+                    description: "You'll now receive updates from Campus Connect."
+                });
             }
         } else {
-            console.log('Notification permission not granted.');
+            toast({
+                title: "Notifications Disabled",
+                description: "You have not enabled push notifications.",
+                variant: "destructive"
+            });
         }
     } catch (error) {
         console.error('An error occurred while setting up push notifications.', error);
+        toast({
+            title: "Notification Error",
+            description: "Something went wrong. Please try again.",
+            variant: "destructive"
+        });
     }
-  }, []);
+  }, [user, toast]);
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
@@ -86,11 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
 
-        // Always check for FCM token if profile is complete
-        if (profileComplete) {
-            await handlePushNotifications(firebaseUser.uid);
-        }
-
       } catch (error) {
         console.error('Failed to process user:', error);
         setDbUser(null);
@@ -102,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileComplete(null);
     }
     setLoading(false);
-  }, [handlePushNotifications]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
@@ -164,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission }}>
       {children}
     </AuthContext.Provider>
   );
