@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { getUserById } from '@/lib/actions/user.actions';
 import { IUser } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,14 +12,16 @@ import { Building, GraduationCap, MessageSquare, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 
-export default function UserProfilePage({ params }: { params: { id: string } }) {
+export default function UserProfilePage() {
   const { user: currentUser } = useAuth();
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const { id } = params;
+  const params = useParams();
+  const id = params.id as string;
 
   useEffect(() => {
     async function fetchUser() {
+      if (!id) return;
       try {
         const fetchedUser = await getUserById(id);
         if (!fetchedUser) {
@@ -33,9 +35,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         setLoading(false);
       }
     }
-    if (id) {
-      fetchUser();
-    }
+    fetchUser();
   }, [id]);
 
   const isOwnProfile = currentUser?.uid === user?.uid;
