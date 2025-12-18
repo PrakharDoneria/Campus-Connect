@@ -43,11 +43,25 @@ export async function createComment(postId: string, content: string, user: IUser
   if (!result.insertedId) {
     throw new Error('Failed to create the comment.');
   }
+  
+  const newCommentId = result.insertedId.toString();
 
-  // Update the post's comments array
+  // Atomically update the post's comments array, fixing it if it's not an array
   await postsCollection.updateOne(
     { _id: new ObjectId(postId) },
-    { $push: { comments: result.insertedId.toString() } }
+    [
+        { 
+            $set: { 
+                comments: {
+                    $cond: {
+                        if: { $isArray: "$comments" },
+                        then: { $concatArrays: [ "$comments", [newCommentId] ] },
+                        else: [newCommentId]
+                    }
+                }
+            }
+        }
+    ]
   );
 
   // Send notification but don't let it block the response
