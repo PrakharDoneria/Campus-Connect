@@ -156,8 +156,10 @@ export default function UserProfilePage() {
               ) : (
                 <>
                   {renderFriendButton()}
-                  <Button variant="outline" disabled={friendStatus !== 'friends'}>
-                    <MessageSquare className="mr-2 h-4 w-4" /> Message
+                  <Button variant="outline" asChild disabled={friendStatus !== 'friends'}>
+                    <Link href="/messages">
+                      <MessageSquare className="mr-2 h-4 w-4" /> Message
+                    </Link>
                   </Button>
                 </>
               )}
@@ -169,7 +171,7 @@ export default function UserProfilePage() {
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="friends" disabled>Friends</TabsTrigger>
+          <TabsTrigger value="friends" asChild><Link href="/friends">Friends</Link></TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
@@ -186,4 +188,3 @@ export default function UserProfilePage() {
     </div>
   );
 }
-

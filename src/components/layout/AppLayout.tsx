@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { GraduationCap, LayoutGrid, LogOut, PanelLeft, Share2, User, Users } from 'lucide-react';
+import { GraduationCap, LayoutGrid, LogOut, MessageSquare, PanelLeft, Share2, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -105,6 +105,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <SidebarMenuButton isActive={pathname.startsWith('/friends')} tooltip="Friends">
                     <Users />
                     <span>Friends</span>
+                  </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <Link href="/messages">
+                  <SidebarMenuButton isActive={pathname.startsWith('/messages')} tooltip="Messages">
+                    <MessageSquare />
+                    <span>Messages</span>
                   </SidebarMenuButton>
                 </Link>
             </SidebarMenuItem>
