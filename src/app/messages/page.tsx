@@ -3,7 +3,6 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,56 +14,106 @@ import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
 import { Shimmer } from '@/components/common/Shimmer';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+
+interface ConversationWithLastMessage extends IUser {
+  lastMessage: IMessage | null;
+}
 
 export default function MessagesPage() {
   const searchParams = useSearchParams();
   const { dbUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
-  const [conversations, setConversations] = useState<IUser[]>([]);
+  const [conversations, setConversations] = useState<ConversationWithLastMessage[]>([]);
   const [activeConversation, setActiveConversation] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-
 
   const chatWithUserUid = searchParams.get('with');
 
   useEffect(() => {
-    async function fetchData() {
-      if (!dbUser) return;
-      setLoading(true);
+    if (!dbUser) return;
 
-      const friendUsers = await getUsers(dbUser.friends);
-      setConversations(friendUsers);
+    let unsubscribers: (() => void)[] = [];
 
-      if (chatWithUserUid) {
-        let chatUser = friendUsers.find(f => f.uid === chatWithUserUid);
-        if (!chatUser) {
-            chatUser = await getUser(chatWithUserUid);
-        }
-        if (chatUser) {
-            setActiveConversation(chatUser);
-            // Add user to conversations if not already a friend (e.g. direct link)
-            if (!friendUsers.some(f => f.uid === chatUser.uid)) {
-                setConversations(prev => [chatUser, ...prev]);
+    const fetchConversations = async () => {
+        setLoading(true);
+        const friendUsers = await getUsers(dbUser.friends);
+        
+        const conversationsWithLastMessage = await Promise.all(
+            friendUsers.map(async (friend) => {
+                let lastMessage: IMessage | null = null;
+                const conversationId = [dbUser.uid, friend.uid].sort().join('_');
+                const messagesCollection = collection(firestore, 'messages');
+                const q = query(
+                    messagesCollection,
+                    where('conversationId', '==', conversationId),
+                    orderBy('createdAt', 'desc'),
+                    limit(1)
+                );
+                
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const doc = snapshot.docs[0];
+                        lastMessage = {
+                            _id: doc.id,
+                            ...doc.data(),
+                            createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date(),
+                        } as IMessage;
+                    }
+                    
+                    setConversations(prev => {
+                        const newConversations = prev.map(c => 
+                            c.uid === friend.uid ? { ...c, lastMessage } : c
+                        );
+                        // Sort by last message date
+                        newConversations.sort((a, b) => {
+                            const dateA = a.lastMessage?.createdAt ?? 0;
+                            const dateB = b.lastMessage?.createdAt ?? 0;
+                            return new Date(dateB).getTime() - new Date(dateA).getTime();
+                        });
+                        return newConversations;
+                    });
+                });
+                unsubscribers.push(unsubscribe);
+
+                return { ...friend, lastMessage };
+            })
+        );
+        
+        setConversations(conversationsWithLastMessage);
+        
+        if (chatWithUserUid) {
+            let chatUser = friendUsers.find(f => f.uid === chatWithUserUid);
+            if (!chatUser) {
+                chatUser = await getUser(chatWithUserUid);
             }
+            if (chatUser) {
+                setActiveConversation(chatUser);
+                 if (!friendUsers.some(f => f.uid === chatUser.uid)) {
+                    setConversations(prev => [{...chatUser, lastMessage: null}, ...prev]);
+                }
+            }
+        } else if (conversationsWithLastMessage.length > 0) {
+            setActiveConversation(conversationsWithLastMessage[0]);
         }
-      } else if (friendUsers.length > 0) {
-        setActiveConversation(friendUsers[0]);
-      }
-      
-      setLoading(false);
-    }
-    fetchData();
-  }, [dbUser, chatWithUserUid]);
+
+        setLoading(false);
+    };
+
+    fetchConversations();
+    
+    return () => {
+        unsubscribers.forEach(unsub => unsub());
+    };
+}, [dbUser, chatWithUserUid]);
   
   const conversationId = useMemo(() => {
     if (!dbUser || !activeConversation) return null;
@@ -111,7 +160,7 @@ export default function MessagesPage() {
   const handleSendMessage = async (e: React.FormEvent, content?: string) => {
     e.preventDefault();
     const textToSend = content || newMessage;
-    if (!textToSend.trim() || !dbUser || !activeConversation || isSending) return;
+    if (!textToSend.trim() || !dbUser || !activeConversation) return;
 
     const optimisticNewMessage = textToSend;
     setNewMessage(''); 
@@ -171,37 +220,48 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-6xl">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-100px)]">
+    <div className="container mx-auto max-w-7xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 h-[calc(100vh-80px)]">
         {/* Conversations Sidebar */}
-        <div className="col-span-1 flex flex-col border-r pr-4">
-          <div className="p-2">
-             <div className="relative">
+        <div className="col-span-1 flex flex-col border-r bg-background">
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-bold">Messages</h2>
+             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search friends..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-2">
-            <nav className="flex flex-col gap-1">
+          <div className="flex-1 overflow-y-auto">
+            <nav className="flex flex-col">
               {filteredConversations.map(convoUser => (
                 <Link
                   key={convoUser.uid}
                   href={`/messages?with=${convoUser.uid}`}
                   onClick={() => setActiveConversation(convoUser)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted/50",
+                    "flex items-center gap-3 p-4 text-muted-foreground transition-all hover:bg-muted/50 border-b",
                     activeConversation?.uid === convoUser.uid && "bg-muted text-foreground"
                   )}
                 >
                   <Avatar className={cn(
-                    "h-10 w-10 border-2",
+                    "h-12 w-12 border-2",
                     activeConversation?.uid === convoUser.uid ? "border-primary" : "border-transparent"
                   )}>
                     <AvatarImage src={convoUser.photoUrl} alt={convoUser.name} />
                     <AvatarFallback>{convoUser.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-semibold">{convoUser.name}</span>
+                  <div className="flex-1 overflow-hidden">
+                    <div className="flex justify-between items-center">
+                        <span className="font-semibold truncate">{convoUser.name}</span>
+                        {convoUser.lastMessage?.createdAt && (
+                            <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(convoUser.lastMessage.createdAt), { addSuffix: true })}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm truncate text-muted-foreground">
+                        {convoUser.lastMessage?.text}
+                    </p>
                   </div>
                 </Link>
               ))}
@@ -215,10 +275,10 @@ export default function MessagesPage() {
         </div>
 
         {/* Chat Window */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col bg-card/50">
+        <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col bg-card/50">
           {activeConversation && dbUser ? (
             <>
-              <CardHeader className="flex flex-row items-center gap-4 p-4 border-b">
+              <header className="flex flex-row items-center gap-4 p-4 border-b bg-background">
                 <Link href={`/profile/${activeConversation._id}`}>
                   <Avatar>
                     <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
@@ -235,22 +295,22 @@ export default function MessagesPage() {
                     <Video className="h-5 w-5" />
                     <span className="sr-only">Start video call</span>
                 </Button>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+              </header>
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-muted/20">
                 {messages.map(msg => (
                     <div key={msg._id.toString()} className={cn("flex items-end gap-2 animate-slide-up", msg.from === dbUser.uid && "justify-end")}>
                       {msg.from !== dbUser.uid && (
-                        <Avatar className="h-8 w-8">
+                        <Avatar className="h-8 w-8 self-start">
                           <AvatarImage src={activeConversation.photoUrl} alt={activeConversation.name} />
                           <AvatarFallback>{activeConversation.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                       )}
                       <div
                         className={cn(
-                          "max-w-xs md:max-w-md rounded-xl p-3 shadow-sm",
+                          "max-w-xs md:max-w-md lg:max-w-lg rounded-xl px-4 py-2 shadow-sm",
                           msg.from === dbUser.uid
                             ? "bg-primary text-primary-foreground rounded-br-none"
-                            : "bg-muted rounded-bl-none"
+                            : "bg-background rounded-bl-none"
                         )}
                       >
                         <p className="text-sm whitespace-pre-wrap">{renderMessageContent(msg.text)}</p>
@@ -258,21 +318,15 @@ export default function MessagesPage() {
                            {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                         </p>
                       </div>
-                       {msg.from === dbUser.uid && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={dbUser.photoUrl} alt={dbUser.name} />
-                          <AvatarFallback>{dbUser.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      )}
                     </div>
                   ))}
                 <div ref={messagesEndRef} />
-              </CardContent>
-              <CardFooter className="p-4 border-t bg-background/80">
+              </main>
+              <footer className="p-4 border-t bg-background">
                 <form onSubmit={handleSendMessage} className="relative w-full flex items-center">
                   <Input 
                     placeholder="Type a message..." 
-                    className="pr-12 rounded-full" 
+                    className="pr-12 rounded-full bg-muted" 
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                   />
@@ -280,7 +334,7 @@ export default function MessagesPage() {
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>
-              </CardFooter>
+              </footer>
             </>
           ) : (
              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8">
@@ -290,8 +344,10 @@ export default function MessagesPage() {
               <Button asChild variant="link" className="mt-2"><Link href="/friends">View Friends</Link></Button>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );
 }
+
+    
