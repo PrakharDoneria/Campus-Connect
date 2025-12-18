@@ -83,11 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
     const isPublicRoute = publicRoutes.includes(pathname);
 
-    if (user && isAuthRoute) {
+    if (user) {
+      if (isAuthRoute) {
         router.push('/feed');
-    } else if (user && isProfileComplete === false && pathname !== '/profile') {
+      } else if (isProfileComplete === false && pathname !== '/profile') {
         router.push('/profile');
-    } else if (!user && !isPublicRoute && !isAuthRoute) {
+      }
+    } else if (!isPublicRoute && !isAuthRoute) {
         router.push('/');
     }
 
@@ -98,8 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const provider = new GithubAuthProvider();
       await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle the rest, and redirect to /feed
-      router.push('/feed');
+      // onAuthStateChanged will handle user creation and redirects
     } catch (error: any) {
       console.error('GitHub sign-in error:', error);
       toast({
@@ -107,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
       setLoading(false);
     }
   };
