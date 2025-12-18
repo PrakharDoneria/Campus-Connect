@@ -1,3 +1,4 @@
+
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -39,9 +40,21 @@ export async function getUserById(id: string): Promise<IUser | null> {
 }
 
 
-export async function createUser(user: Omit<IUser, '_id'>): Promise<IUser> {
+export async function createUser(user: Partial<IUser>): Promise<IUser> {
   const usersCollection = await getUsersCollection();
-  const result = await usersCollection.insertOne(user);
+  const newUserPayload: IUser = {
+    _id: new ObjectId().toString(),
+    uid: user.uid!,
+    email: user.email!,
+    name: user.name!,
+    photoUrl: user.photoUrl,
+    friends: [],
+    friendRequestsSent: [],
+    friendRequestsReceived: [],
+    ...user,
+  };
+
+  const result = await usersCollection.insertOne(newUserPayload as any);
   const newUser = await usersCollection.findOne({ _id: result.insertedId });
   if (!newUser) {
     throw new Error('Failed to create user.');
@@ -102,6 +115,43 @@ export async function getNearbyUsers({
   }).limit(limit).toArray();
 
   return users.map(user => ({
+    ...user,
+    _id: user._id.toString(),
+  })) as IUser[];
+}
+
+export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
+  const users = await getUsersCollection();
+  await users.updateOne({ uid: fromUid }, { $addToSet: { friendRequestsSent: toUid } });
+  await users.updateOne({ uid: toUid }, { $addToSet: { friendRequestsReceived: fromUid } });
+}
+
+export async function acceptFriendRequest(userUid: string, fromUid: string): Promise<void> {
+  const users = await getUsersCollection();
+  // Add to each other's friends list
+  await users.updateOne({ uid: userUid }, { $addToSet: { friends: fromUid }, $pull: { friendRequestsReceived: fromUid } });
+  await users.updateOne({ uid: fromUid }, { $addToSet: { friends: userUid }, $pull: { friendRequestsSent: userUid } });
+}
+
+export async function rejectFriendRequest(userUid: string, fromUid: string): Promise<void> {
+  const users = await getUsersCollection();
+  // Remove the request
+  await users.updateOne({ uid: userUid }, { $pull: { friendRequestsReceived: fromUid } });
+  await users.updateOne({ uid: fromUid }, { $pull: { friendRequestsSent: userUid } });
+}
+
+export async function removeFriend(userUid: string, friendUid: string): Promise<void> {
+    const users = await getUsersCollection();
+    // Remove from both users' friends lists
+    await users.updateOne({ uid: userUid }, { $pull: { friends: friendUid } });
+    await users.updateOne({ uid: friendUid }, { $pull: { friends: userUid } });
+}
+
+export async function getUsers(uids: string[]): Promise<IUser[]> {
+  if (!uids || uids.length === 0) return [];
+  const usersCollection = await getUsersCollection();
+  const userObjects = await usersCollection.find({ uid: { $in: uids } }).toArray();
+  return userObjects.map(user => ({
     ...user,
     _id: user._id.toString(),
   })) as IUser[];

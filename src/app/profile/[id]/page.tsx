@@ -3,26 +3,33 @@
 
 import { useEffect, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { getUserById } from '@/lib/actions/user.actions';
+import { getUserById, sendFriendRequest } from '@/lib/actions/user.actions';
 import { getPosts } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit } from 'lucide-react';
+import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function UserProfilePage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, dbUser, loading: authLoading } = useAuth();
   const [user, setUser] = useState<IUser | null>(null);
   const [posts, setPosts] = useState<IPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const params = useParams();
   const id = params.id as string;
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   useEffect(() => {
     async function fetchData() {
@@ -57,7 +64,48 @@ export default function UserProfilePage() {
 
   const isOwnProfile = currentUser?.uid === user?.uid;
 
-  if (loading) {
+  const handleAddFriend = async () => {
+    if (!dbUser || !user) return;
+    setIsSubmitting(true);
+    try {
+      await sendFriendRequest(dbUser.uid, user.uid);
+      toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}.` });
+      router.refresh();
+    } catch (error) {
+      toast({ title: "Error", description: "Could not send friend request.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getFriendStatus = () => {
+    if (authLoading || !dbUser || !user) return null;
+    if (dbUser.friends.includes(user.uid)) return 'friends';
+    if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
+    if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
+    return null;
+  };
+  
+  const friendStatus = getFriendStatus();
+
+  const renderFriendButton = () => {
+    if (isSubmitting) {
+        return <Button disabled><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Please Wait</Button>
+    }
+
+    switch (friendStatus) {
+        case 'friends':
+            return <Button disabled variant="secondary"><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
+        case 'sent':
+            return <Button disabled variant="secondary">Request Sent</Button>;
+        case 'received':
+            return <Button asChild><Link href="/friends">Respond to Request</Link></Button>;
+        default:
+            return <Button onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
+    }
+  };
+
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto p-4 max-w-4xl space-y-8">
         <Skeleton className="h-[250px] w-full" />
@@ -100,9 +148,7 @@ export default function UserProfilePage() {
               </Button>
             ) : (
               <>
-                <Button>
-                  <UserPlus className="mr-2 h-4 w-4" /> Add Friend
-                </Button>
+                {renderFriendButton()}
                 <Button variant="outline" disabled>
                   <MessageSquare className="mr-2 h-4 w-4" /> Message
                 </Button>
@@ -115,7 +161,7 @@ export default function UserProfilePage() {
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="friends" disabled>Friends</TabsTrigger>
+          <TabsTrigger value="friends" asChild><Link href="/friends">Friends</Link></TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
@@ -127,11 +173,6 @@ export default function UserProfilePage() {
                     <p>This user hasn't posted anything yet.</p>
                 </div>
             )}
-        </TabsContent>
-        <TabsContent value="friends">
-            <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>No friends to show yet.</p>
-            </div>
         </TabsContent>
       </Tabs>
     </div>

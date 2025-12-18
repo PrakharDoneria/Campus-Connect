@@ -2,9 +2,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { getPosts } from '@/lib/actions/post.actions';
-import { IUser, IPost } from '@/types';
+import { IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -16,11 +16,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 
 export default function OwnProfilePage() {
-  const { dbUser } = useAuth();
+  const { dbUser, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<IPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
+    // If auth is not loading and there's no dbUser, redirect or show not found
+    if (!authLoading && !dbUser) {
+        // This could be a redirect to login or a not found page.
+        // For now, we'll use notFound() to indicate the profile doesn't exist for a non-logged-in user.
+        router.push('/');
+        return;
+    }
+
     async function fetchData() {
       if (!dbUser) return;
       try {
@@ -34,15 +43,18 @@ export default function OwnProfilePage() {
         setLoading(false);
       }
     }
-    fetchData();
-  }, [dbUser]);
+    
+    if (dbUser) {
+        fetchData();
+    }
+  }, [dbUser, authLoading, router]);
 
   const handlePostUpdate = (updatedPost: IPost) => {
     setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
   };
 
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto p-4 max-w-4xl space-y-8">
         <Skeleton className="h-[250px] w-full" />
@@ -53,7 +65,8 @@ export default function OwnProfilePage() {
   }
 
   if (!dbUser) {
-    return notFound();
+    // This will be rendered briefly before the redirect in useEffect kicks in.
+    return null;
   }
 
   return (
@@ -89,7 +102,7 @@ export default function OwnProfilePage() {
       <Tabs defaultValue="posts" className="mt-8">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="friends" disabled>Friends</TabsTrigger>
+          <TabsTrigger value="friends" asChild><Link href="/friends">Friends</Link></TabsTrigger>
         </TabsList>
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
@@ -101,11 +114,6 @@ export default function OwnProfilePage() {
                     <p>You haven't posted anything yet.</p>
                 </div>
             )}
-        </TabsContent>
-        <TabsContent value="friends">
-            <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                <p>No friends to show yet.</p>
-            </div>
         </TabsContent>
       </Tabs>
     </div>

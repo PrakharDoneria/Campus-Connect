@@ -40,14 +40,16 @@ export default function FeedPage() {
     fetchData();
   }, []);
   
-  const userOwnedCircles = useMemo(() => {
+  const circlesWithUserActivity = useMemo(() => {
     if (!dbUser) return [];
-    return circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
-  }, [circles, dbUser]);
+    const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
+    const postedInCircleNames = posts.filter(p => p.author.uid === dbUser.uid).map(p => p.circle);
+    return [...new Set([...createdCircleNames, ...postedInCircleNames])];
+  }, [circles, posts, dbUser]);
 
   const postsInUserCircles = useMemo(() => {
-    return posts.filter(p => userOwnedCircles.includes(p.circle));
-  }, [posts, userOwnedCircles]);
+    return posts.filter(p => circlesWithUserActivity.includes(p.circle));
+  }, [posts, circlesWithUserActivity]);
 
 
   const handlePostCreated = (newPost: IPost) => {
@@ -139,4 +141,3 @@ export default function FeedPage() {
     </div>
   );
 }
-

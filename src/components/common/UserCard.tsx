@@ -5,14 +5,63 @@ import { IUser } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { UserPlus, MessageSquare } from 'lucide-react';
+import { UserPlus, MessageSquare, UserCheck, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { sendFriendRequest } from '@/lib/actions/user.actions';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export function UserCard({ user }: { user: IUser }) {
+  const { dbUser, loading } = useAuth();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
-  const handleAddFriend = () => {
-    console.log(`Adding user as friend: ${user.name} (${user._id})`);
-    // Placeholder for actual friend request logic
+  const handleAddFriend = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!dbUser) {
+      toast({ title: "Please login", description: "You need to be logged in to add friends." });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await sendFriendRequest(dbUser.uid, user.uid);
+      toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}.` });
+      router.refresh(); // Refresh the page to update the UI
+    } catch (error) {
+      toast({ title: "Error", description: "Could not send friend request.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getFriendStatus = () => {
+    if (!dbUser || !user) return null;
+    if (dbUser.friends.includes(user.uid)) return 'friends';
+    if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
+    if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
+    return null;
+  };
+
+  const friendStatus = getFriendStatus();
+
+  const renderFriendButton = () => {
+    if (isSubmitting || loading) {
+      return <Button size="sm" className="flex-1" disabled><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</Button>;
+    }
+
+    switch (friendStatus) {
+      case 'friends':
+        return <Button size="sm" className="flex-1" disabled><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
+      case 'sent':
+        return <Button size="sm" variant="secondary" className="flex-1" disabled>Request Sent</Button>;
+      case 'received':
+        return <Button size="sm" asChild className="flex-1"><Link href="/friends">Respond</Link></Button>;
+      default:
+        return <Button size="sm" className="flex-1" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
+    }
   };
 
   return (
@@ -30,9 +79,7 @@ export function UserCard({ user }: { user: IUser }) {
             <p className="text-xs text-muted-foreground">{user.major}</p>
         </CardContent>
         <div className="flex w-full gap-2 mt-4">
-            <Button size="sm" className="flex-1" onClick={(e) => { e.preventDefault(); handleAddFriend(); }}>
-                <UserPlus className="mr-2 h-4 w-4" /> Add Friend
-            </Button>
+            {renderFriendButton()}
             <Button size="sm" variant="outline" className="flex-1" disabled>
                 <MessageSquare className="mr-2 h-4 w-4" />
             </Button>

@@ -110,8 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 email: firebaseUser.email || '',
                 name: firebaseUser.displayName || 'New User',
                 photoUrl: firebaseUser.photoURL || '',
-            } as Omit<IUser, '_id' | 'university' | 'major' | 'location' | 'gender'>;
-            mongoUser = await createUser(newUser as any);
+                friends: [],
+                friendRequestsSent: [],
+                friendRequestsReceived: [],
+            } as Partial<IUser>;
+            mongoUser = await createUser(newUser);
         }
         setDbUser(mongoUser);
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
@@ -160,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // If user is not logged in
-      if (!isPublicRoute && !isPublicProfileRoute) {
+      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends') {
         router.push('/');
       }
     }

@@ -101,6 +101,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
+                <Link href="/friends">
+                  <SidebarMenuButton isActive={pathname.startsWith('/friends')} tooltip="Friends">
+                    <Users />
+                    <span>Friends</span>
+                  </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleInvite} tooltip="Invite">
                     <Share2 />
                     <span>Invite Friend</span>
@@ -137,4 +145,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
-

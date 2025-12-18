@@ -17,6 +17,9 @@ export interface IUser {
     coordinates: [number, number];
   };
   fcmToken?: string;
+  friends: string[]; // array of UIDs
+  friendRequestsSent: string[]; // array of UIDs
+  friendRequestsReceived: string[]; // array of UIDs
 }
 
 export interface PostAuthor {
@@ -38,7 +41,7 @@ export interface IPost {
 
 export interface ICircle {
   _id: string | ObjectId;
-  name: string;
+  name:string;
   description: string;
   creatorUid: string;
   createdAt: Date;
