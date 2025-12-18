@@ -11,9 +11,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { getPosts } from '@/lib/actions/post.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
+import { Shimmer } from '@/components/common/Shimmer';
 
 
 export default function FeedPage() {
@@ -88,9 +88,9 @@ export default function FeedPage() {
     if (loading) {
       return (
         <>
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+          <Shimmer className="h-48 w-full" />
+          <Shimmer className="h-48 w-full" />
+          <Shimmer className="h-48 w-full" />
         </>
       );
     }
@@ -136,26 +136,26 @@ export default function FeedPage() {
         </TabsList>
         <TabsContent value="everyone">
           <div className="space-y-6 mt-6">
-            {renderPosts(posts, "No posts yet. Be the first to share something!")}
+            {renderPosts(posts, "It's awfully quiet in here... Be the first to post something!")}
           </div>
         </TabsContent>
         <TabsContent value="your-circles">
            <div className="space-y-6 mt-6">
-            {renderPosts(postsInUserCircles, "Post in a circle or create one to see content here.")}
+            {renderPosts(postsInUserCircles, "Join a circle or create one to see your curated feed!")}
           </div>
         </TabsContent>
         <TabsContent value="circles">
             <div className="relative mt-6">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                    placeholder="Search for a circle, e.g., 'study_group'"
+                    placeholder="Find a circle, like 'memes' or 'study_group'"
                     value={circleSearch}
                     onChange={(e) => setCircleSearch(e.target.value)}
                     className="pl-10"
                 />
             </div>
            <div className="space-y-6 mt-6">
-            {renderPosts(searchedCirclePosts, circleSearch.trim() ? "No posts found for this circle." : "Type a circle name to find posts.")}
+            {renderPosts(searchedCirclePosts, circleSearch.trim() ? "No posts found for this circle. Maybe create it?" : "Type a circle name to discover new communities.")}
           </div>
         </TabsContent>
       </Tabs>
@@ -163,9 +163,9 @@ export default function FeedPage() {
        {isGuest && !loading && (
         <div className="text-center py-10 mt-6 bg-card rounded-lg shadow-md">
           <GraduationCap className="h-12 w-12 text-primary mx-auto mb-4" />
-          <h2 className="text-2xl font-bold">See What’s Happening</h2>
+          <h2 className="text-2xl font-bold">You're viewing as a guest</h2>
           <p className="text-muted-foreground mt-2 mb-6">
-            Log in to see more posts and connect with your campus community.
+            Looks like you're on the outside looking in. Log in to join the party!
           </p>
           <Button asChild>
             <Link href="/">Login or Sign Up</Link>

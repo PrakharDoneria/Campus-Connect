@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { getNearbyUsers } from '@/lib/actions/user.actions';
 import { IUser } from '@/types';
 import { UserCard } from '@/components/common/UserCard';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Shimmer } from '@/components/common/Shimmer';
 import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -77,9 +77,9 @@ export default function NearbyPage() {
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Location Not Set!</AlertTitle>
                 <AlertDescription>
-                    You need to set your location in your profile to see nearby students.
+                    To see nearby students, you need to set your location. Don't worry, we won't tell anyone you live in your mom's basement.
                     <Button asChild variant="link">
-                        <Link href="/profile">Go to Profile</Link>
+                        <Link href="/profile/edit">Go to Profile</Link>
                     </Button>
                 </AlertDescription>
             </Alert>
@@ -110,7 +110,7 @@ export default function NearbyPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-64 w-full rounded-lg" />
+            <Shimmer key={i} className="h-64 w-full rounded-lg" />
           ))}
         </div>
       ) : error ? (
@@ -125,7 +125,7 @@ export default function NearbyPage() {
         </div>
       ) : (
         <div className="text-center py-10 text-muted-foreground">
-          <p>No other students found nearby. Expand your search radius or check back later!</p>
+          <p>Are you on a remote island? No one's nearby. Try expanding your search radius!</p>
         </div>
       )}
     </div>

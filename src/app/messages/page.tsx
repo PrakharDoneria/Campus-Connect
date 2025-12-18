@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getUser, getUsers, sendMessage } from '@/lib/actions/user.actions';
 import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Shimmer } from '@/components/common/Shimmer';
 import { cn } from '@/lib/utils';
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { firestore } from '@/lib/firebase';
@@ -119,8 +119,8 @@ export default function MessagesPage() {
     return (
         <div className="container mx-auto p-4 max-w-6xl">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 h-[calc(100vh-120px)]">
-                <Skeleton className="col-span-1 h-full" />
-                <Skeleton className="col-span-1 md:col-span-2 lg:col-span-3 h-full" />
+                <Shimmer className="col-span-1 h-full" />
+                <Shimmer className="col-span-1 md:col-span-2 lg:col-span-3 h-full" />
             </div>
         </div>
     )
@@ -161,7 +161,7 @@ export default function MessagesPage() {
               ))}
                {conversations.length === 0 && (
                 <p className="p-4 text-center text-sm text-muted-foreground">
-                    No conversations yet. Add friends to start chatting.
+                    No conversations yet. Go make some friends!
                 </p>
             )}
             </nav>
@@ -212,7 +212,7 @@ export default function MessagesPage() {
                   ))
                 ) : (
                     <div className="text-center py-16 text-muted-foreground">
-                        <p>This is the beginning of your conversation with {activeConversation.name}.</p>
+                        <p>This is the beginning of your legendary conversation with {activeConversation.name}.</p>
                     </div>
                 )}
                 <div ref={messagesEndRef} />
@@ -234,9 +234,9 @@ export default function MessagesPage() {
           ) : (
              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
               <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-              <p className="font-semibold">Select a conversation to start chatting</p>
-              <p className="text-sm">You can chat with your friends.</p>
-              <Button asChild variant="link" className="mt-2"><Link href="/friends">Find Friends</Link></Button>
+              <p className="font-semibold">Select a conversation</p>
+              <p className="text-sm">Or slide into someone's DMs from their profile.</p>
+              <Button asChild variant="link" className="mt-2"><Link href="/friends">View Friends</Link></Button>
             </div>
           )}
         </Card>

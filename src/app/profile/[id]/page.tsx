@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { getUser, sendFriendRequest, getUsers } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Shimmer } from '@/components/common/Shimmer';
 import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
@@ -75,7 +75,7 @@ export default function UserProfilePage() {
     setIsSubmitting(true);
     try {
       await sendFriendRequest(dbUser.uid, user.uid);
-      toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}.` });
+      toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}. They'll be so thrilled.` });
        // Manually update the state to give instant feedback
       const updatedDbUser = { ...dbUser, friendRequestsSent: [...dbUser.friendRequestsSent, user.uid] };
       // This is a bit of a hack, but it forces a re-render of the button state
@@ -119,9 +119,9 @@ export default function UserProfilePage() {
   if (loading || authLoading) {
     return (
       <div className="container mx-auto p-4 max-w-4xl space-y-8">
-        <Skeleton className="h-[250px] w-full" />
-        <Skeleton className="h-[50px] w-full" />
-        <Skeleton className="h-[200px] w-full" />
+        <Shimmer className="h-[250px] w-full" />
+        <Shimmer className="h-[50px] w-full" />
+        <Shimmer className="h-[200px] w-full" />
       </div>
     );
   }
@@ -185,7 +185,7 @@ export default function UserProfilePage() {
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                    <p>This user hasn't posted anything yet.</p>
+                    <p>This user is a professional lurker. Not a single post in sight.</p>
                 </div>
             )}
         </TabsContent>
@@ -196,7 +196,7 @@ export default function UserProfilePage() {
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                    <p>This user doesn't have any friends yet.</p>
+                    <p>A lone wolf! This user hasn't added any friends yet.</p>
                 </div>
             )}
         </TabsContent>

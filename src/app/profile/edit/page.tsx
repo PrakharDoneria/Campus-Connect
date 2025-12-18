@@ -16,6 +16,7 @@ import { Loader2, LocateFixed } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Gender } from '@/types';
 import { useRouter } from 'next/navigation';
+import { Shimmer } from '@/components/common/Shimmer';
 
 const profileSchema = z.object({
   university: z.string().min(1, 'University is required'),
@@ -85,7 +86,7 @@ export default function ProfileEditPage() {
         setIsDetectingLocation(false);
         toast({
           title: 'Location Detected!',
-          description: 'Aakashvani from the sky says we got you.',
+          description: 'Great! We now know where to find you. Kidding... mostly.',
         });
       },
       (error) => {
@@ -166,20 +167,20 @@ export default function ProfileEditPage() {
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
              <Card className="w-full max-w-md">
                 <CardHeader>
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+                    <Shimmer className="h-8 w-3/4" />
+                    <Shimmer className="h-4 w-1/2" />
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/4" />
-                        <Skeleton className="h-10 w-full" />
+                        <Shimmer className="h-4 w-1/4" />
+                        <Shimmer className="h-10 w-full" />
                     </div>
                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-1/4" />
-                        <Skeleton className="h-10 w-full" />
+                        <Shimmer className="h-4 w-1/4" />
+                        <Shimmer className="h-10 w-full" />
                     </div>
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
+                    <Shimmer className="h-10 w-full" />
+                    <Shimmer className="h-10 w-full" />
                 </CardContent>
              </Card>
         </div>
@@ -192,9 +193,9 @@ export default function ProfileEditPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">{isInitialSetup ? 'Finish your KYC...' : 'Edit Your Profile'}</CardTitle>
+          <CardTitle className="text-2xl">{isInitialSetup ? 'Finish Your Profile' : 'Edit Your Profile'}</CardTitle>
           <CardDescription>
-            {isInitialSetup ? 'Just kidding! But please fill this out so we can find your tribe.' : 'Keep your details up-to-date.'}
+            {isInitialSetup ? "Just a few more details and you're in. We promise it's less painful than a pop quiz." : 'Keep your details up-to-date.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -250,7 +251,7 @@ export default function ProfileEditPage() {
             <div className="space-y-2 rounded-lg border p-4">
                  <Label>Your Location</Label>
                  <p className="text-sm text-muted-foreground pb-2">
-                    We need your location to connect you with students nearby.
+                    We need your location to find nearby students. Don't worry, we won't stalk you.
                 </p>
                 <Button
                     type="button"
@@ -260,11 +261,11 @@ export default function ProfileEditPage() {
                     className="w-full"
                 >
                     {isDetectingLocation ? <Loader2 className="animate-spin" /> : <LocateFixed />}
-                    {coordinates ? 'Location Detected Successfully' : 'Detect My Location'}
+                    {coordinates ? 'Location Detected!' : 'Detect My Location'}
                 </Button>
                 {coordinates && (
                     <p className="text-xs text-center text-green-600">
-                        You can now save your profile.
+                        Got it! You can now save your profile.
                     </p>
                 )}
             </div>

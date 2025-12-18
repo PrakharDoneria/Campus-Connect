@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { acceptFriendRequest, rejectFriendRequest } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Shimmer } from '@/components/common/Shimmer';
 import { FriendCard } from '@/components/common/FriendCard';
 
 export default function FriendsPage() {
@@ -53,27 +53,24 @@ export default function FriendsPage() {
       if (action === 'accept') {
         await acceptFriendRequest(dbUser.uid, fromUid);
         toast({ title: "Friend Added!", description: "You are now friends." });
+        
+        const newFriend = friendRequests.find(u => u.uid === fromUid);
+        if (newFriend) {
+          setFriends(prev => [...prev, newFriend]);
+        }
       } else {
         await rejectFriendRequest(dbUser.uid, fromUid);
         toast({ title: "Request Rejected" });
       }
       
-      // Manually update state after action to give instant feedback
-      if (action === 'accept') {
-        const newFriend = friendRequests.find(u => u.uid === fromUid);
-        if (newFriend) {
-          setFriends(prev => [...prev, newFriend]);
-        }
-      }
       setFriendRequests(prev => prev.filter(u => u.uid !== fromUid));
+      router.refresh();
 
     } catch (error) {
       console.error("Failed to handle friend request:", error);
       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally {
       setActionLoading(prev => ({ ...prev, [fromUid]: false }));
-      // Refresh router to get the freshest user state for subsequent actions
-      router.refresh();
     }
   };
 
@@ -81,11 +78,11 @@ export default function FriendsPage() {
     return (
         <div className="container mx-auto max-w-2xl p-4">
             <h1 className="text-3xl font-bold mb-6">Friends</h1>
-            <Skeleton className="h-10 w-full mb-4" />
+            <Shimmer className="h-10 w-full mb-4" />
             <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
+                <Shimmer className="h-20 w-full" />
+                <Shimmer className="h-20 w-full" />
+                <Shimmer className="h-20 w-full" />
             </div>
         </div>
     );
@@ -108,8 +105,8 @@ export default function FriendsPage() {
             </div>
           ) : (
             <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-              <p>You haven't added any friends yet.</p>
-              <Button variant="link" asChild><Link href="/nearby">Find Students Nearby</Link></Button>
+              <p>This is where your friends would be... IF YOU HAD ANY!</p>
+              <Button variant="link" asChild><Link href="/nearby">Find Some Friends</Link></Button>
             </div>
           )}
         </TabsContent>
@@ -140,7 +137,7 @@ export default function FriendsPage() {
             </div>
           ) : (
             <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-              <p>No pending friend requests.</p>
+              <p>Your inbox is empty. No new friend requests.</p>
             </div>
           )}
         </TabsContent>

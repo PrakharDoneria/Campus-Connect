@@ -30,7 +30,7 @@ export default function LoadingScreen() {
       </div>
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary">Campus Connect</h2>
-        <p className="text-muted-foreground">Connecting your campus, one student at a time...</p>
+        <p className="text-muted-foreground">Brewing coffee and loading your campus...</p>
       </div>
       <style jsx>{`
         @keyframes orbit {

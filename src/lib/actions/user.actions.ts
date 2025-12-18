@@ -145,6 +145,11 @@ export async function getNearbyUsers({
 
 export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
   const users = await getUsersCollection();
+  // Prevent sending a request to yourself or if already friends
+  const fromUser = await users.findOne({ uid: fromUid });
+  if (fromUid === toUid || fromUser?.friends?.includes(toUid)) {
+      throw new Error("Invalid friend request.");
+  }
   await users.updateOne({ uid: fromUid }, { $addToSet: { friendRequestsSent: toUid } });
   await users.updateOne({ uid: toUid }, { $addToSet: { friendRequestsReceived: fromUid } });
 }

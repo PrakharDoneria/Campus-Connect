@@ -7,9 +7,9 @@ import { getPostsByCircle } from '@/lib/actions/post.actions';
 import { getCircleByName } from '@/lib/actions/circle.actions';
 import { IPost, ICircle } from '@/types';
 import { PostCard } from '@/components/common/PostCard';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
+import { Shimmer } from '@/components/common/Shimmer';
 
 export default function CircleFeedPage() {
   const params = useParams();
@@ -60,10 +60,12 @@ export default function CircleFeedPage() {
   if (loading || authLoading) {
     return (
       <div className="container mx-auto p-4 max-w-2xl space-y-6">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-48 w-full" />
+        <Shimmer className="h-24 w-full" />
+        <Shimmer className="h-10 w-48" />
+        <div className="space-y-6">
+            <Shimmer className="h-48 w-full" />
+            <Shimmer className="h-48 w-full" />
+        </div>
       </div>
     );
   }
@@ -81,7 +83,6 @@ export default function CircleFeedPage() {
 
       {dbUser && (
         <div className="mb-6">
-          {/* This is a simplified version; in a real app, you might not want to pass all circles */}
           <CreatePostForm 
             user={dbUser} 
             circles={[circle]} 
@@ -103,7 +104,7 @@ export default function CircleFeedPage() {
           ))
         ) : (
           <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-            <p>No posts in this circle yet. Be the first to share something!</p>
+            <p>This circle is quieter than a library during finals. Be the first to post!</p>
           </div>
         )}
       </div>
