@@ -39,12 +39,12 @@ export function UserCard({ user }: { user: IUser }) {
   };
 
   const friendStatus = useMemo(() => {
-    if (!dbUser || !user) return null;
+    if (loading || !dbUser || !user || !dbUser.friends) return null;
     if (dbUser.friends.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
     if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
     return null;
-  }, [dbUser, user]);
+  }, [dbUser, user, loading]);
 
   const renderFriendButton = () => {
     if (isSubmitting || loading) {
@@ -53,7 +53,7 @@ export function UserCard({ user }: { user: IUser }) {
 
     switch (friendStatus) {
       case 'friends':
-        return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
+        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
       case 'sent':
         return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}>Request Sent</Button>;
       case 'received':
@@ -73,17 +73,17 @@ export function UserCard({ user }: { user: IUser }) {
           </Avatar>
         </Link>
       </CardHeader>
-      <CardContent className="p-2 space-y-2 flex-grow">
+      <CardContent className="p-2 space-y-2 flex-grow flex flex-col justify-center">
         <Link href={`/profile/${user._id.toString()}`}>
             <h3 className="font-bold text-lg hover:underline">{user.name}</h3>
         </Link>
         <p className="text-sm text-muted-foreground">{user.university}</p>
         <p className="text-xs text-muted-foreground">{user.major}</p>
       </CardContent>
-      <div className="flex w-full gap-2 mt-4">
+      <div className="flex w-full gap-2 mt-auto pt-4">
         {dbUser?.uid !== user.uid && renderFriendButton()}
         <Button size="sm" variant="outline" className="flex-1" asChild>
-            <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
+            <Link href={`/messages?with=${user.uid}`}>
                 <MessageSquare className="mr-2 h-4 w-4" /> Message
             </Link>
         </Button>
