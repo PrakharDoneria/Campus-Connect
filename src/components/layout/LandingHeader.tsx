@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Github, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { GoogleIcon } from '../icons';
 
 export default function LandingHeader() {
-  const { user, loading, signInWithGitHub, signOut } = useAuth();
+  const { user, loading, signInWithGitHub, signInWithGoogle, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,10 +26,16 @@ export default function LandingHeader() {
                 <Button onClick={signOut} variant="ghost">Sign Out</Button>
               </>
             ) : (
-              <Button onClick={signInWithGitHub} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Github className="mr-2 h-4 w-4" />
-                Sign in with GitHub
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={signInWithGoogle} variant="outline">
+                  <GoogleIcon className="mr-2 h-4 w-4" />
+                  Sign in with Google
+                </Button>
+                <Button onClick={signInWithGitHub}>
+                  <Github className="mr-2 h-4 w-4" />
+                  Sign in with GitHub
+                </Button>
+              </div>
             ))}
         </nav>
       </div>

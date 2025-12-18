@@ -1,7 +1,7 @@
 'use client';
 
 import { auth } from '@/lib/firebase';
-import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { getUser, createUser } from '@/lib/actions/user.actions';
@@ -16,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   isProfileComplete: boolean | null;
   signInWithGitHub: () => void;
+  signInWithGoogle: () => void;
   signOut: () => void;
 }
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isProfileComplete: null,
   signInWithGitHub: () => {},
+  signInWithGoogle: () => {},
   signOut: () => {},
 });
 
@@ -95,23 +97,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   }, [user, isProfileComplete, loading, pathname, router]);
 
-  const signInWithGitHub = async () => {
+  const signInWithProvider = async (provider: GithubAuthProvider | GoogleAuthProvider) => {
     setLoading(true);
     try {
-      const provider = new GithubAuthProvider();
       await signInWithPopup(auth, provider);
       // onAuthStateChanged will handle user creation and redirects
     } catch (error: any) {
-      console.error('GitHub sign-in error:', error);
+      console.error('Sign-in error:', error);
       toast({
         title: 'Authentication Error',
         description: error.message,
         variant: 'destructive',
       });
     } finally {
-      setLoading(false);
+      // Don't setLoading(false) here, let onAuthStateChanged handle it
     }
   };
+
+  const signInWithGitHub = () => signInWithProvider(new GithubAuthProvider());
+  const signInWithGoogle = () => signInWithProvider(new GoogleAuthProvider());
 
   const signOut = async () => {
     await firebaseSignOut(auth);
@@ -123,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signOut }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
