@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSearchParams } from 'next/navigation';
@@ -173,14 +174,14 @@ export default function MessagesPage() {
     <div className="container mx-auto p-4 max-w-6xl">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 h-[calc(100vh-100px)]">
         {/* Conversations Sidebar */}
-        <Card className="col-span-1 flex flex-col">
-          <CardHeader>
+        <div className="col-span-1 flex flex-col border-r pr-4">
+          <div className="p-2">
              <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search friends..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto p-2">
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
             <nav className="flex flex-col gap-1">
               {filteredConversations.map(convoUser => (
                 <Link
@@ -188,8 +189,8 @@ export default function MessagesPage() {
                   href={`/messages?with=${convoUser.uid}`}
                   onClick={() => setActiveConversation(convoUser)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted relative",
-                    activeConversation?.uid === convoUser.uid && "bg-muted text-primary-foreground"
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted/50",
+                    activeConversation?.uid === convoUser.uid && "bg-muted text-foreground"
                   )}
                 >
                   <Avatar className={cn(
@@ -210,8 +211,8 @@ export default function MessagesPage() {
                 </p>
             )}
             </nav>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Chat Window */}
         <Card className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col bg-card/50">
@@ -290,3 +291,4 @@ export default function MessagesPage() {
     </div>
   );
 }
+
