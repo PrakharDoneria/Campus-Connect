@@ -86,7 +86,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
       };
       fetchComments();
     }
-  }, [post._id, post.comments.length, commentsFetched, toast]);
+  }, [post._id, post.comments.length, commentsFetched, toast, comments]);
 
 
   const handleLike = async () => {
