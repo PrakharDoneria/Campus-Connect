@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { getUsers } from '@/lib/actions/user.actions';
 import type { IUser } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, UserCheck, UserPlus, X } from 'lucide-react';
@@ -35,7 +35,7 @@ function FriendCard({ user, children }: { user: IUser, children?: React.ReactNod
 }
 
 export default function FriendsPage() {
-  const { dbUser } = useAuth();
+  const { dbUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -76,23 +76,27 @@ export default function FriendsPage() {
         await rejectFriendRequest(dbUser.uid, fromUid);
         toast({ title: "Request Rejected" });
       }
-      // Refresh data
-       router.refresh();
-       const [requests, currentFriends] = await Promise.all([
-          getUsers(dbUser.friendRequestsReceived.filter(uid => uid !== fromUid)),
-          getUsers(action === 'accept' ? [...dbUser.friends, fromUid] : dbUser.friends),
-        ]);
-        setFriendRequests(requests);
-        setFriends(currentFriends);
+      
+      // Manually update state after action to give instant feedback
+      if (action === 'accept') {
+        const newFriend = friendRequests.find(u => u.uid === fromUid);
+        if (newFriend) {
+          setFriends(prev => [...prev, newFriend]);
+        }
+      }
+      setFriendRequests(prev => prev.filter(u => u.uid !== fromUid));
 
     } catch (error) {
+      console.error("Failed to handle friend request:", error);
       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
     } finally {
       setActionLoading(prev => ({ ...prev, [fromUid]: false }));
+      // Refresh router to get the freshest user state for subsequent actions
+      router.refresh();
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
         <div className="container mx-auto max-w-2xl p-4">
             <h1 className="text-3xl font-bold mb-6">Friends</h1>
