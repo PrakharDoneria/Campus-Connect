@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -17,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
-import { GraduationCap, LayoutGrid, LogOut, User } from 'lucide-react';
+import { GraduationCap, LayoutGrid, LogOut, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -44,6 +43,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <span>Feed</span>
                 </SidebarMenuButton>
               </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <Link href="/nearby" legacyBehavior passHref>
+                    <SidebarMenuButton isActive={pathname === '/nearby'} tooltip="Nearby">
+                        <Users />
+                        <span>Nearby</span>
+                    </SidebarMenuButton>
+                </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href="/profile" legacyBehavior passHref>
