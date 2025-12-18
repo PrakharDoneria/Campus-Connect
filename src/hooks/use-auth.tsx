@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
 
+        // Always check for FCM token if profile is complete
         if (profileComplete) {
             await handlePushNotifications(firebaseUser.uid);
         }
