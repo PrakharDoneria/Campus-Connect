@@ -16,11 +16,12 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
   const { user: currentUser } = useAuth();
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const { id } = params;
 
   useEffect(() => {
     async function fetchUser() {
       try {
-        const fetchedUser = await getUserById(params.id);
+        const fetchedUser = await getUserById(id);
         if (!fetchedUser) {
           notFound();
         }
@@ -33,7 +34,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
       }
     }
     fetchUser();
-  }, [params.id]);
+  }, [id]);
 
   const isOwnProfile = currentUser?.uid === user?.uid;
 
