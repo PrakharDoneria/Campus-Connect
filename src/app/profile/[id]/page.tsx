@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { getUser, sendFriendRequest, getUsers } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
@@ -37,6 +37,7 @@ export default function UserProfilePage() {
       if (!id) return;
       try {
         setLoading(true);
+        // It could be a UID or a Mongo _id
         const fetchedUser = await getUser(id);
         if (!fetchedUser) {
           notFound();
@@ -65,6 +66,10 @@ export default function UserProfilePage() {
   
   const handlePostUpdate = (updatedPost: IPost) => {
     setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
+  };
+  
+  const handlePostDelete = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
   };
 
 
@@ -134,14 +139,14 @@ export default function UserProfilePage() {
     <div className="container mx-auto max-w-4xl p-4">
       <Card className="overflow-hidden">
         <div className="h-32 bg-muted" />
-        <CardContent className="p-4">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 -mt-20">
-            <Avatar className="w-32 h-32 border-4 border-background shrink-0">
+            <Avatar className="w-28 h-28 sm:w-32 sm:h-32 border-4 border-background shrink-0">
               <AvatarImage src={user.photoUrl} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="mt-4 sm:mt-0 flex-grow">
-              <h1 className="text-3xl font-bold">{user.name}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{user.name}</h1>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
                 <div className="flex items-center gap-2">
                   <Building className="h-4 w-4" />
@@ -181,7 +186,7 @@ export default function UserProfilePage() {
         <TabsContent value="posts" className="mt-4">
             {posts.length > 0 ? (
                 <div className="space-y-4">
-                    {posts.map(post => <PostCard key={post._id.toString()} post={post} onPostUpdate={handlePostUpdate} />)}
+                    {posts.map(post => <PostCard key={post._id.toString()} post={post} onPostUpdate={handlePostUpdate} onPostDelete={handlePostDelete} />)}
                 </div>
             ) : (
                 <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
@@ -190,8 +195,8 @@ export default function UserProfilePage() {
             )}
         </TabsContent>
         <TabsContent value="friends" className="mt-4">
-            {friends.length > 0 ? (
-                <div className="space-y-4">
+             {friends.length > 0 ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {friends.map(friend => <FriendCard key={friend.uid} user={friend} />)}
                 </div>
             ) : (

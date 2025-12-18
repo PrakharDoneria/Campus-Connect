@@ -6,8 +6,8 @@ import { PostCard } from '@/components/common/PostCard';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { IPost, ICircle } from '@/types';
-import { GraduationCap, Search } from 'lucide-react';
-import { useEffect, useState, useMemo } from 'react';
+import { GraduationCap, Search, Loader2 } from 'lucide-react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getPosts } from '@/lib/actions/post.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
@@ -22,25 +22,48 @@ export default function FeedPage() {
   const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
   const [circleSearch, setCircleSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const isGuest = !user;
+
+  const fetchPosts = useCallback(async (pageNum: number) => {
+    setLoadingMore(true);
+    try {
+        const newPosts = await getPosts({ page: pageNum, limit: 5 });
+        if (newPosts.length > 0) {
+            setPosts(prev => pageNum === 1 ? newPosts : [...prev, ...newPosts]);
+        } else {
+            setHasMorePosts(false);
+        }
+    } catch (error) {
+        console.error("Failed to fetch posts:", error);
+    } finally {
+        setLoadingMore(false);
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [fetchedPosts, fetchedCircles] = await Promise.all([
-            getPosts(),
-            getCircles()
-        ]);
-        setPosts(fetchedPosts);
+        setLoading(true);
+        fetchPosts(1);
+        const fetchedCircles = await getCircles();
         setCircles(fetchedCircles);
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch initial data:", error);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, []);
+  }, [fetchPosts]);
+  
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchPosts(nextPage);
+  };
   
   const circlesWithUserActivity = useMemo(() => {
     if (!dbUser) return [];
@@ -82,10 +105,14 @@ export default function FeedPage() {
   const handlePostUpdate = (updatedPost: IPost) => {
     setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
   };
+  
+  const handlePostDelete = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
+  };
 
 
-  const renderPosts = (postsToRender: IPost[], emptyMessage: string) => {
-    if (loading) {
+  const renderPosts = (postsToRender: IPost[], emptyMessage: string, showPagination: boolean = false) => {
+    if (loading && posts.length === 0) {
       return (
         <>
           <Shimmer className="h-48 w-full" />
@@ -105,14 +132,26 @@ export default function FeedPage() {
       );
     }
 
-    return limitedPosts.map((post) => (
-      <PostCard 
-        key={post._id.toString()} 
-        post={post} 
-        isGuest={isGuest}
-        onPostUpdate={handlePostUpdate}
-      />
-    ));
+    return (
+        <div className="space-y-6">
+            {limitedPosts.map((post) => (
+              <PostCard 
+                key={post._id.toString()} 
+                post={post} 
+                isGuest={isGuest}
+                onPostUpdate={handlePostUpdate}
+                onPostDelete={handlePostDelete}
+              />
+            ))}
+            {showPagination && !isGuest && hasMorePosts && (
+                <div className="text-center">
+                    <Button onClick={handleLoadMore} disabled={loadingMore}>
+                        {loadingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Load More'}
+                    </Button>
+                </div>
+            )}
+        </div>
+    )
   };
 
 
@@ -134,18 +173,14 @@ export default function FeedPage() {
           <TabsTrigger value="your-circles">Your Circles</TabsTrigger>
           <TabsTrigger value="circles">Search Circles</TabsTrigger>
         </TabsList>
-        <TabsContent value="everyone">
-          <div className="space-y-6 mt-6">
-            {renderPosts(posts, "It's awfully quiet in here... Be the first to post something!")}
-          </div>
+        <TabsContent value="everyone" className="mt-6">
+          {renderPosts(posts, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
-        <TabsContent value="your-circles">
-           <div className="space-y-6 mt-6">
-            {renderPosts(postsInUserCircles, "Join a circle or create one to see your curated feed!")}
-          </div>
+        <TabsContent value="your-circles" className="mt-6">
+           {renderPosts(postsInUserCircles, "Join a circle or create one to see your curated feed!")}
         </TabsContent>
-        <TabsContent value="circles">
-            <div className="relative mt-6">
+        <TabsContent value="circles" className="mt-6">
+            <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                     placeholder="Find a circle, like 'memes' or 'study_group'"
@@ -154,9 +189,9 @@ export default function FeedPage() {
                     className="pl-10"
                 />
             </div>
-           <div className="space-y-6 mt-6">
-            {renderPosts(searchedCirclePosts, circleSearch.trim() ? "No posts found for this circle. Maybe create it?" : "Type a circle name to discover new communities.")}
-          </div>
+           <div className="mt-6">
+                {renderPosts(searchedCirclePosts, circleSearch.trim() ? "No posts found for this circle. Maybe create it?" : "Type a circle name to discover new communities.")}
+            </div>
         </TabsContent>
       </Tabs>
 

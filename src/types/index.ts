@@ -35,6 +35,7 @@ export interface IPost {
     content: string;
     circle: string; // Circle name
     createdAt: Date;
+    editedAt?: Date;
     likes: string[]; // Array of user UIDs
     comments: number; // Keep it simple for now
 }

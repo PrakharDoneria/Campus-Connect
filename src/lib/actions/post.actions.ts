@@ -52,9 +52,10 @@ export async function createPost(content: string, circle: string, user: IUser): 
   } as IPost;
 }
 
-export async function getPosts(): Promise<IPost[]> {
+export async function getPosts({ page = 1, limit = 10 }: { page?: number; limit?: number; } = {}): Promise<IPost[]> {
     const postsCollection = await getPostsCollection();
-    const posts = await postsCollection.find({}).sort({ createdAt: -1 }).toArray();
+    const skip = (page - 1) * limit;
+    const posts = await postsCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
 
     // Convert _id to string for each post
     return posts.map(post => ({
@@ -100,4 +101,28 @@ export async function toggleLikePost(postId: string, userId: string): Promise<bo
   );
 
   return !isLiked;
+}
+
+export async function updatePost(postId: string, content: string): Promise<IPost> {
+  const postsCollection = await getPostsCollection();
+  const result = await postsCollection.findOneAndUpdate(
+    { _id: new ObjectId(postId) },
+    { $set: { content, editedAt: new Date() } },
+    { returnDocument: 'after' }
+  );
+
+  if (!result) {
+    throw new Error('Post not found or update failed.');
+  }
+
+  return { ...result, _id: result._id.toString() } as unknown as IPost;
+}
+
+export async function deletePost(postId: string): Promise<void> {
+  const postsCollection = await getPostsCollection();
+  const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
+
+  if (result.deletedCount === 0) {
+    throw new Error('Post not found or could not be deleted.');
+  }
 }
