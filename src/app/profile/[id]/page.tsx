@@ -33,7 +33,9 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         setLoading(false);
       }
     }
-    fetchUser();
+    if (id) {
+      fetchUser();
+    }
   }, [id]);
 
   const isOwnProfile = currentUser?.uid === user?.uid;
