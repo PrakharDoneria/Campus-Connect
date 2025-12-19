@@ -17,6 +17,7 @@ import {
   Compass,
   Search,
   Bell,
+  HandCoins,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -148,6 +149,13 @@ export default function LandingHeader() {
                         <span>Profile</span>
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/contribute">
+                        <HandCoins className="mr-2 h-4 w-4" />
+                        <span>Contribute</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Sign Out</span>
