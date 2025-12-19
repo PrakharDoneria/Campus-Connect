@@ -37,25 +37,8 @@ export async function sendPushNotification(payload: NotificationPayload): Promis
     //     body: JSON.stringify({
     //       subscription: user.pushSubscription,
     //       payload: {
-    -        // Vercel doesn't support FCM, so we use a different service.
-    -        const response = await fetch('https://fcm-push-one.vercel.app/send-notification', {
-    -            method: 'POST',
-    -            headers: {
-    -                'Content-Type': 'application/json',
-    -                // Vercel needs a user-agent
-    -                'User-Agent': 'CampusConnect/1.0',
-    -            },
-    -            body: JSON.stringify({
-    -                token: user.fcmToken,
-    -                title: payload.title,
-    -                body: payload.body,
-    -            }),
-    -        });
-    -
-    -        if (!response.ok) {
-    -            const errorBody = await response.text();
-    -            console.error('Failed to send push notification:', response.status, errorBody);
-    -        }
+    //         title: payload.title,
+    //         body: payload.body,
     //       }
     //     })
     //   });
