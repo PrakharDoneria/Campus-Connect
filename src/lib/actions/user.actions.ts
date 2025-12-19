@@ -4,10 +4,6 @@
 import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser, Gender } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
-import { sendPushNotification } from './notification.actions';
-import { firestore } from '@/lib/firebase';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
-
 
 async function getDb() {
     const client = await clientPromise;
@@ -85,7 +81,6 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
     friendRequestsSent: [],
     friendRequestsReceived: [],
     blockedUsers: [],
-    fcmToken: '',
     ...user,
   };
 
@@ -200,15 +195,6 @@ export async function sendFriendRequest(fromUid: string, toUid: string): Promise
 
   await users.updateOne({ uid: fromUid }, { $addToSet: { friendRequestsSent: toUid } });
   await users.updateOne({ uid: toUid }, { $addToSet: { friendRequestsReceived: fromUid } });
-
-  // Send notification
-  if (toUser?.fcmToken && fromUser) {
-    await sendPushNotification({
-      token: toUser.fcmToken,
-      title: "You have a new friend request!",
-      body: `${fromUser.name} wants to be your friend.`,
-    });
-  }
 }
 
 export async function acceptFriendRequest(userUid: string, fromUid: string): Promise<void> {
@@ -330,32 +316,17 @@ export async function inferUserInteractionPreference(uid: string): Promise<Gende
   const currentUser = await getUser(uid);
   if (!currentUser) return 'everyone';
 
-  const interactedUserUids = new Set<string>();
+  // 1. Get friends' details from MongoDB
+  const friends = await getUsers(currentUser.friends);
 
-  // 1. Get friends
-  currentUser.friends.forEach(friendUid => interactedUserUids.add(friendUid));
-
-  // 2. Get recent message partners
-  const messagesRef = collection(firestore, 'messages');
-  const sentQuery = query(messagesRef, where('from', '==', uid), orderBy('createdAt', 'desc'), limit(25));
-  const receivedQuery = query(messagesRef, where('to', '==', uid), orderBy('createdAt', 'desc'), limit(25));
-
-  const [sentSnapshot, receivedSnapshot] = await Promise.all([getDocs(sentQuery), getDocs(receivedQuery)]);
-  sentSnapshot.forEach(doc => interactedUserUids.add(doc.data().to));
-  receivedSnapshot.forEach(doc => interactedUserUids.add(doc.data().from));
-  
-  // No interactions, return everyone
-  if (interactedUserUids.size === 0) {
+  if (friends.length === 0) {
     return 'everyone';
   }
 
-  // 3. Fetch user details for interacted UIDs
-  const interactedUsers = await getUsers(Array.from(interactedUserUids));
-
-  // 4. Analyze genders
+  // 2. Analyze genders from the friends list
   let maleCount = 0;
   let femaleCount = 0;
-  interactedUsers.forEach(user => {
+  friends.forEach(user => {
     if (user.gender === 'male') maleCount++;
     if (user.gender === 'female') femaleCount++;
   });
@@ -366,11 +337,9 @@ export async function inferUserInteractionPreference(uid: string): Promise<Gende
   const maleRatio = maleCount / total;
   const femaleRatio = femaleCount / total;
 
-  // 5. Determine preference
+  // 3. Determine preference based on a simple majority threshold
   if (maleRatio > 0.7) return 'male';
   if (femaleRatio > 0.7) return 'female';
   
   return 'everyone';
 }
-
-    

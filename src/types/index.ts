@@ -16,7 +16,6 @@ export interface IUser {
     type: 'Point';
     coordinates: [number, number];
   };
-  fcmToken?: string;
   friends: string[]; // array of UIDs
   friendRequestsSent: string[]; // array of UIDs
   friendRequestsReceived: string[]; // array of UIDs

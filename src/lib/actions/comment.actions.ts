@@ -69,9 +69,9 @@ export async function createComment(postId: string, content: string, user: IUser
     const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
     if (post && post.author.uid !== user.uid) {
       const author = await getUser(post.author.uid);
-      if (author?.fcmToken) {
+      if (author) {
         await sendPushNotification({
-          token: author.fcmToken,
+          userId: author.uid,
           title: `${user.name} commented on your post`,
           body: content.substring(0, 100),
         });

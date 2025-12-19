@@ -104,14 +104,12 @@ export async function toggleLikePost(postId: string, userId: string): Promise<bo
 
   // Send notification if the post is being liked (not unliked)
   if (!isLiked && post.author.uid !== userId) {
-    const [liker, author] = await Promise.all([
-      getUser(userId),
-      getUser(post.author.uid),
-    ]);
+    const liker = await getUser(userId);
+    const author = await getUser(post.author.uid);
 
-    if (liker && author?.fcmToken) {
+    if (liker && author) {
       sendPushNotification({
-        token: author.fcmToken,
+        userId: author.uid,
         title: `${liker.name} liked your post!`,
         body: `"${post.content.substring(0, 50)}..."`,
       });

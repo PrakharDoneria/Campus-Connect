@@ -1,43 +1,31 @@
 
 'use server';
 
-const NOTIFICATION_API_URL = 'https://fcm-push-one.vercel.app/send-notification';
 
 interface NotificationPayload {
-    token: string;
+    userId: string;
     title: string;
     body: string;
 }
 
-export async function sendPushNotification({ token, title, body }: NotificationPayload): Promise<void> {
-    if (!token) {
-        console.warn("Attempted to send notification but no FCM token was provided.");
-        return;
-    }
+export async function sendPushNotification(payload: NotificationPayload): Promise<void> {
+    // This is a placeholder for your custom notification system.
+    // You can implement your logic here, e.g., saving to a 'notifications'
+    // collection in MongoDB, using a WebSocket service, etc.
     
-    try {
-        const response = await fetch(NOTIFICATION_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'CampusConnect/1.0',
-            },
-            body: JSON.stringify({
-                token,
-                title,
-                body,
-            }),
-        });
-        
-        const responseData = await response.json();
+    console.log(`Creating notification for user ${payload.userId}:`);
+    console.log(`Title: ${payload.title}`);
+    console.log(`Body: ${payload.body}`);
 
-        if (!response.ok) {
-            console.error('Failed to send push notification:', responseData.error || response.statusText);
-        } else {
-            console.log('Push notification sent successfully:', responseData.message_id);
-        }
-
-    } catch (error) {
-        console.error('An error occurred while sending push notification:', error);
-    }
+    // Example of saving to a DB (pseudo-code):
+    // const notification = {
+    //   userId: payload.userId,
+    //   title: payload.title,
+    //   body: payload.body,
+    //   read: false,
+    //   createdAt: new Date(),
+    // };
+    // await db.collection('notifications').insertOne(notification);
+    
+    return Promise.resolve();
 }

@@ -1,16 +1,15 @@
 
 'use client';
 
-import { auth, messaging, firestore } from '@/lib/firebase';
+import { auth, firestore } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { getUser, createUser, updateUser } from '@/lib/actions/user.actions';
-import type { IUser, IMessage } from '@/types';
+import { getUser, createUser } from '@/lib/actions/user.actions';
+import type { IUser } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
-import { getToken } from 'firebase/messaging';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 
 interface AuthContextType {
@@ -21,7 +20,6 @@ interface AuthContextType {
   signInWithGitHub: () => void;
   signInWithGoogle: () => void;
   signOut: () => void;
-  requestNotificationPermission: () => Promise<void>;
   unreadMessagesCount: number;
   friendRequestCount: number;
 }
@@ -34,7 +32,6 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGitHub: () => {},
   signInWithGoogle: () => {},
   signOut: () => {},
-  requestNotificationPermission: async () => {},
   unreadMessagesCount: 0,
   friendRequestCount: 0,
 });
@@ -54,59 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast } = useToast();
 
-  const handleFcmToken = useCallback(async (uid: string) => {
-    if (!messaging || typeof window === 'undefined' || !('Notification' in window)) {
-        return;
-    }
-    try {
-        const currentPermission = Notification.permission;
-        if (currentPermission === 'granted') {
-            const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-            if (fcmToken) {
-                await updateUser(uid, { fcmToken });
-            }
-        }
-    } catch (error) {
-        console.error('An error occurred while handling FCM token.', error);
-    }
-  }, []);
-
-  const requestNotificationPermission = useCallback(async () => {
-    if (!messaging || typeof window === 'undefined' || !('Notification' in window) || !user) {
-        toast({
-            title: "Notifications not supported",
-            description: "Your browser does not support push notifications.",
-            variant: "destructive"
-        });
-        return;
-    }
-
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            // Immediately get and save the token upon permission grant
-            await handleFcmToken(user.uid);
-            toast({
-                title: "Notifications Enabled!",
-                description: "You'll now receive updates from Campus Connect."
-            });
-        } else {
-            toast({
-                title: "Notifications Disabled",
-                description: "You have not enabled push notifications.",
-                variant: "destructive"
-            });
-        }
-    } catch (error) {
-        console.error('An error occurred while setting up push notifications.', error);
-        toast({
-            title: "Notification Error",
-            description: "Something went wrong. Please try again.",
-            variant: "destructive"
-        });
-    }
-  }, [user, toast, handleFcmToken]);
-
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
       setUser(firebaseUser);
@@ -122,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 friendRequestsSent: [],
                 friendRequestsReceived: [],
                 blockedUsers: [],
-                fcmToken: '',
             } as Partial<IUser>;
             mongoUser = await createUser(newUser);
         }
@@ -130,11 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setFriendRequestCount(mongoUser.friendRequestsReceived?.length || 0);
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
-
-        // This check remains important for users logging in on a new device where permission might already be granted.
-        if (profileComplete) {
-            await handleFcmToken(firebaseUser.uid);
-        }
 
       } catch (error) {
         console.error('Failed to process user:', error);
@@ -147,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsProfileComplete(null);
     }
     setLoading(false);
-  }, [handleFcmToken]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
@@ -234,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount, friendRequestCount }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, unreadMessagesCount, friendRequestCount }}>
       {children}
     </AuthContext.Provider>
   );
