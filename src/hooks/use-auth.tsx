@@ -6,6 +6,7 @@ import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAu
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { getUser, createUser, updateUser } from '@/lib/actions/user.actions';
+import { sendPushNotification } from '@/lib/actions/notification.actions';
 import type { IUser } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
@@ -119,10 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Notification permission not granted.');
       }
   
-      console.log('Notification permission granted.');
-      
       const serviceWorkerRegistration = await navigator.serviceWorker.ready;
-      console.log('Service worker is ready.');
       
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
@@ -135,14 +133,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applicationServerKey,
       });
   
-      console.log('Push subscription successful:', subscription);
-      
       await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
       
       toast({
         title: "Notifications Enabled!",
         description: "You'll now receive updates from Campus Connect.",
       });
+
+      // Send a test notification after 5 seconds
+      setTimeout(() => {
+        sendPushNotification({
+          userId: dbUser.uid,
+          title: "Welcome to Campus Connect!",
+          body: "Notifications are now enabled. You're all set!",
+        });
+      }, 5000);
   
     } catch (error: any) {
       console.error('Failed to subscribe to push notifications:', error);
