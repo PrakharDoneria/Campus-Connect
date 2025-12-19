@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -25,18 +26,30 @@ export default function ChatPage() {
   const { toast } = useToast();
   
   const conversationId = params.id as string;
-  const otherUserUid = conversationId.replace(dbUser?.uid || '', '').replace('_', '');
-
+  
   const [otherUser, setOtherUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const otherUserUid = useMemo(() => {
+    if (!conversationId || !dbUser?.uid) return null;
+    return conversationId.replace(dbUser.uid, '').replace('_', '');
+  }, [conversationId, dbUser?.uid]);
+
+
   useEffect(() => {
-    if (!otherUserUid) return;
+    if (!otherUserUid) {
+      if (!authLoading && conversationId) {
+        // Handle case where user is not found or invalid conversation
+        router.push('/messages');
+      }
+      return;
+    };
     const fetchOtherUser = async () => {
         try {
+            setLoading(true);
             const user = await getUser(otherUserUid);
             setOtherUser(user);
         } catch (error) {
@@ -47,7 +60,7 @@ export default function ChatPage() {
         }
     };
     fetchOtherUser();
-  }, [otherUserUid, toast]);
+  }, [otherUserUid, toast, authLoading, conversationId, router]);
 
 
   useEffect(() => {
@@ -76,10 +89,13 @@ export default function ChatPage() {
             } as IMessage);
         });
         setMessages(newMessages);
+    }, (error) => {
+        console.error("Error fetching messages:", error);
+        toast({ title: "Error", description: "Could not load messages.", variant: "destructive" });
     });
 
     return () => unsubscribe();
-  }, [conversationId, dbUser]);
+  }, [conversationId, dbUser, toast]);
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,7 +161,7 @@ export default function ChatPage() {
     });
   };
 
-  if (loading || authLoading) {
+  if (loading || authLoading || !otherUserUid) {
       return (
           <div className="flex flex-col h-full">
               <header className="flex items-center gap-4 p-4 border-b bg-background">
