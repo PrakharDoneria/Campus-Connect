@@ -65,6 +65,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
   const [isCommenting, setIsCommenting] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsFetched, setCommentsFetched] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const timestamp = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const editedTimestamp = post.editedAt ? formatDistanceToNow(new Date(post.editedAt), { addSuffix: true }) : null;
@@ -86,7 +87,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
       };
       fetchComments();
     }
-  }, [post._id, post.comments.length, commentsFetched, toast, showComments, comments]);
+  }, [post._id, post.comments, commentsFetched, toast, showComments]);
 
 
   const handleLike = async () => {
@@ -204,19 +205,25 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
             </div>
              {isAuthor && (
               <div className="ml-auto">
-                <DropdownMenu>
+                <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
+                    <DropdownMenuItem onSelect={() => {
+                      setShowEditDialog(true);
+                      setIsMenuOpen(false);
+                    }}>
                       Edit Post
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
-                      onSelect={() => setShowDeleteAlert(true)}
+                      onSelect={() => {
+                        setShowDeleteAlert(true);
+                        setIsMenuOpen(false);
+                      }}
                     >
                       Delete Post
                     </DropdownMenuItem>
@@ -341,5 +348,3 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
     </>
   );
 }
-
-    
