@@ -35,18 +35,28 @@ export default function ChatPage() {
 
   const otherUserUid = useMemo(() => {
     if (!conversationId || !dbUser?.uid) return null;
-    return conversationId.replace(dbUser.uid, '').replace('_', '');
+    try {
+      const uids = conversationId.split('_');
+      if (uids.length !== 2) return null;
+      return uids[0] === dbUser.uid ? uids[1] : uids[0];
+    } catch (e) {
+      console.error("Error parsing conversationId:", e);
+      return null;
+    }
   }, [conversationId, dbUser?.uid]);
 
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+
     if (!otherUserUid) {
-      if (!authLoading && conversationId && dbUser) {
-        // Handle case where user is not found or invalid conversation
+      if (dbUser) { // Only redirect if we know who the user is
+        toast({ title: 'Invalid Chat', description: 'Could not find the user you were trying to chat with.', variant: 'destructive' });
         router.push('/messages');
       }
       return;
     };
+    
     const fetchOtherUser = async () => {
         try {
             setLoading(true);
@@ -60,7 +70,7 @@ export default function ChatPage() {
         }
     };
     fetchOtherUser();
-  }, [otherUserUid, toast, authLoading, conversationId, router, dbUser]);
+  }, [otherUserUid, toast, authLoading, router, dbUser]);
 
 
   useEffect(() => {
@@ -181,13 +191,13 @@ export default function ChatPage() {
   }
 
   if (!otherUser || !dbUser) {
-      return <div>Loading...</div>
+      return <div>Loading user...</div>
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] bg-card/50 page-transition">
       <header className="flex flex-row items-center gap-2 p-2 border-b bg-background">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/messages')}>
             <ArrowLeft className="h-5 w-5" />
         </Button>
         <Link href={`/profile/${otherUser._id}`} className="flex items-center gap-2">
