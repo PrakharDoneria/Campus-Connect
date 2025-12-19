@@ -5,12 +5,11 @@ import { auth, firestore } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInWithPopup, GithubAuthProvider, GoogleAuthProvider, signOut as firebaseSignOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { getUser, createUser } from '@/lib/actions/user.actions';
+import { getUser, createUser, updateUser } from '@/lib/actions/user.actions';
 import type { IUser } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +19,7 @@ interface AuthContextType {
   signInWithGitHub: () => void;
   signInWithGoogle: () => void;
   signOut: () => void;
+  requestNotificationPermission: () => void;
   unreadMessagesCount: number;
   friendRequestCount: number;
 }
@@ -32,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGitHub: () => {},
   signInWithGoogle: () => {},
   signOut: () => {},
+  requestNotificationPermission: () => {},
   unreadMessagesCount: 0,
   friendRequestCount: 0,
 });
@@ -87,10 +88,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  const requestNotificationPermission = useCallback(async () => {
+    if (!("Notification" in window) || !dbUser) {
+      console.log("This browser does not support desktop notification");
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      console.log('Permission already granted.');
+      return;
+    }
+
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        console.log('Notification permission granted.');
+        // Now get the subscription
+        try {
+          const serviceWorker = await navigator.serviceWorker.ready;
+          const subscription = await serviceWorker.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+          });
+          
+          await updateUser(dbUser.uid, { pushSubscription: subscription });
+          
+          toast({
+            title: "Notifications Enabled!",
+            description: "You'll now receive updates from Campus Connect.",
+          });
+        } catch (error) {
+          console.error('Failed to subscribe to push notifications:', error);
+          toast({
+            title: "Subscription Failed",
+            description: "Could not enable notifications. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+  }, [dbUser, toast]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
   }, [handleUser]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            .then(reg => console.log('Service worker registered.', reg))
+            .catch(err => console.error('Service worker registration failed:', err));
+    }
+  }, []);
 
   useEffect(() => {
     if (!dbUser) {
@@ -119,22 +169,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isPublicRoute = publicRoutes.includes(pathname) || pathname === '/';
     const isProfileEditRoute = pathname === '/profile/edit';
     
-    // Allow access to public profile pages
     const isPublicProfileRoute = /^\/profile\/[a-zA-Z0-9]+$/.test(pathname);
     const isSearchRoute = pathname === '/search';
 
     if (user) {
       if (isProfileComplete === false && !isProfileEditRoute) {
-        // If profile is not complete, redirect to the edit page.
         router.push('/profile/edit');
       } else if (isProfileComplete === true && isProfileEditRoute && !dbUser?.university) {
-        // This case handles when the user is on the edit page but the profile is already complete
-        // but it's their first time. We let them stay.
       } else if (pathname === '/') {
         router.push('/feed');
       }
     } else {
-      // If user is not logged in
       if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && pathname !== '/messages' && !isSearchRoute) {
         router.push('/');
       }
@@ -146,7 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle user creation and redirects
     } catch (error: any) {
       console.error('Sign-in error:', error);
       toast({
@@ -154,8 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message,
         variant: 'destructive',
       });
-    } finally {
-      // Don't setLoading(false) here, let onAuthStateChanged handle it
     }
   };
 
@@ -172,7 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, unreadMessagesCount, friendRequestCount }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount, friendRequestCount }}>
       {children}
     </AuthContext.Provider>
   );

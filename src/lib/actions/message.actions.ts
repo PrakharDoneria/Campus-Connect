@@ -44,7 +44,7 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
     _id: docRef.id,
     conversationId,
     from: fromUid,
-    to: toUid,
+to: toUid,
     text,
     read: false,
     createdAt: new Date(), // This is an approximation, client-side date

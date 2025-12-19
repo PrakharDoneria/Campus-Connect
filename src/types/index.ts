@@ -20,6 +20,7 @@ export interface IUser {
   friendRequestsSent: string[]; // array of UIDs
   friendRequestsReceived: string[]; // array of UIDs
   blockedUsers?: string[]; // array of UIDs
+  pushSubscription?: PushSubscriptionJSON;
 }
 
 export interface PostAuthor {

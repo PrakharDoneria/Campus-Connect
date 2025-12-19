@@ -108,7 +108,7 @@ export async function toggleLikePost(postId: string, userId: string): Promise<bo
     const author = await getUser(post.author.uid);
 
     if (liker && author) {
-      sendPushNotification({
+      await sendPushNotification({
         userId: author.uid,
         title: `${liker.name} liked your post!`,
         body: `"${post.content.substring(0, 50)}..."`,

@@ -16,6 +16,7 @@ import {
   Users,
   Compass,
   Search,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -45,7 +46,7 @@ import { Input } from '../ui/input';
 
 function DesktopNavLinks() {
   const pathname = usePathname();
-  const { unreadMessagesCount, friendRequestCount } = useAuth();
+  const { unreadMessagesCount, friendRequestCount, requestNotificationPermission } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -74,6 +75,21 @@ function DesktopNavLinks() {
         />
       </form>
       <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='ghost'
+              onClick={requestNotificationPermission}
+              className="justify-center w-12 h-12 rounded-full"
+            >
+              <Bell />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+              <p>Enable Notifications</p>
+          </TooltipContent>
+        </Tooltip>
+
         {navItems.map((item) => (
           <Tooltip key={item.href}>
             <TooltipTrigger asChild>
