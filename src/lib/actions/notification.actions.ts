@@ -1,54 +1,65 @@
 
 'use server';
 
-import { getUser } from './user.actions';
+import { getUser, updateUser } from './user.actions';
+import webpush, { type PushSubscription } from 'web-push';
 
 interface NotificationPayload {
-    userId: string;
-    title: string;
-    body: string;
+  userId: string;
+  title: string;
+  body: string;
+  url?: string;
+}
+
+const vapidPublicKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    'mailto:you@example.com',
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+} else {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('VAPID keys must be configured for push notifications in production.');
+  } else {
+    console.warn('VAPID keys are not configured. Push notifications will not work.');
+  }
 }
 
 export async function sendPushNotification(payload: NotificationPayload): Promise<void> {
-    const user = await getUser(payload.userId);
-    
-    if (!user || !user.pushSubscription) {
-        console.log(`User ${payload.userId} not found or has no push subscription.`);
-        return;
+  const user = await getUser(payload.userId);
+
+  if (!user || !user.pushSubscription) {
+    console.log(`User ${payload.userId} not found or has no push subscription.`);
+    return;
+  }
+  
+  if (!vapidPublicKey || !vapidPrivateKey) {
+      console.warn("VAPID keys not set, skipping push notification.");
+      return;
+  }
+
+  const subscription = user.pushSubscription as unknown as PushSubscription;
+
+  const notificationData = JSON.stringify({
+    title: payload.title,
+    body: payload.body,
+    icon: '/icon-192x192.png',
+    data: {
+      url: payload.url || '/feed', 
+    },
+  });
+
+  try {
+    await webpush.sendNotification(subscription, notificationData);
+  } catch (error: any) {
+    console.error('Error sending push notification:', error.statusCode, error.body);
+    // If the subscription is gone or invalid (404 or 410), remove it from the database
+    if (error.statusCode === 404 || error.statusCode === 410) {
+      console.log('Subscription is no longer valid. Removing from DB.');
+      await updateUser(user.uid, { pushSubscription: undefined });
     }
-
-    console.log(`--- Sending Push Notification ---`);
-    console.log(`To: ${user.name} (${user.uid})`);
-    console.log(`Title: ${payload.title}`);
-    console.log(`Body: ${payload.body}`);
-    console.log(`Subscription Info:`, user.pushSubscription);
-    console.log(`---------------------------------`);
-    
-    // In a real application, you would add a backend service here
-    // to take the 'user.pushSubscription' object and send the actual push
-    // notification via a service like Firebase Admin SDK, web-push, etc.
-    //
-    // Example using a hypothetical backend endpoint:
-    //
-    // try {
-    //   const response = await fetch('https://your-backend.com/send-notification', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({
-    //       subscription: user.pushSubscription,
-    //       payload: {
-    //         title: payload.title,
-    //         body: payload.body,
-    //       }
-    //     })
-    //   });
-    //
-    //   if (!response.ok) {
-    //     throw new Error(`Notification send failed with status: ${response.status}`);
-    //   }
-    // } catch (error) {
-    //   console.error("Error sending push notification:", error);
-    // }
-
-    return Promise.resolve();
+  }
 }
