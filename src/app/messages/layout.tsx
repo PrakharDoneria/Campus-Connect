@@ -12,14 +12,12 @@ export default function MessagesLayout({
 }) {
   const isMobile = useIsMobile();
 
-  // On mobile, the `children` will be either the list or the chat.
-  // On desktop, we show the list and the children side-by-side.
   return (
     <div className="container mx-auto max-w-7xl h-full">
         <div className={cn("grid h-[calc(100vh-80px)] md:h-[calc(100vh-80px)]", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3 lg:grid-cols-4")}>
             {isMobile ? (
-              // On mobile, only render the active child route, which will be either the list or a specific chat.
-              children
+              // On mobile, the active parallel route (list or chat) is passed as `children`.
+              children || list
             ) : (
               // On desktop, always render the list and the active child (chat or default message).
               <>
