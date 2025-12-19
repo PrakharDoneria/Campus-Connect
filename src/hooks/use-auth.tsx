@@ -98,49 +98,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return;
     }
-
+  
     if (Notification.permission === 'granted') {
-       toast({ title: "Already Enabled", description: "You've already enabled notifications." });
+      toast({ title: "Already Enabled", description: "You've already enabled notifications." });
       return;
     }
-
-    if (Notification.permission !== 'denied') {
+  
+    if (Notification.permission === 'denied') {
+      toast({
+        title: "Permission Denied",
+        description: "You have blocked notifications. Please enable them in your browser settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+  
+    try {
       const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        console.log('Notification permission granted.');
-        try {
-          const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-          if (!vapidKey) {
-            throw new Error('VAPID key is not defined.');
-          }
-
-          const serviceWorker = await navigator.serviceWorker.ready;
-          const subscription = await serviceWorker.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidKey),
-          });
-          
-          await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
-          
-          toast({
-            title: "Notifications Enabled!",
-            description: "You'll now receive updates from Campus Connect.",
-          });
-        } catch (error: any) {
-          console.error('Failed to subscribe to push notifications:', error);
-          toast({
-            title: "Subscription Failed",
-            description: error.message || "Could not enable notifications. Please try again.",
-            variant: "destructive",
-          });
-        }
+      if (permission !== 'granted') {
+        throw new Error('Notification permission not granted.');
       }
-    } else {
-        toast({
-            title: "Permission Denied",
-            description: "You have blocked notifications. Please enable them in your browser settings.",
-            variant: "destructive",
-        })
+  
+      console.log('Notification permission granted.');
+      
+      const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+      console.log('Service worker is ready.');
+      
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      if (!vapidKey) {
+        throw new Error('VAPID key is not defined.');
+      }
+      
+      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+      const subscription = await serviceWorkerRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+  
+      console.log('Push subscription successful:', subscription);
+      
+      await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
+      
+      toast({
+        title: "Notifications Enabled!",
+        description: "You'll now receive updates from Campus Connect.",
+      });
+  
+    } catch (error: any) {
+      console.error('Failed to subscribe to push notifications:', error);
+      toast({
+        title: "Subscription Failed",
+        description: error.message || "Could not enable notifications. Please try again.",
+        variant: "destructive",
+      });
     }
   }, [dbUser, toast]);
 
@@ -148,14 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
   }, [handleUser]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/firebase-messaging-sw.js')
-            .then(reg => console.log('Service worker registered.', reg))
-            .catch(err => console.error('Service worker registration failed:', err));
-    }
-  }, []);
 
   useEffect(() => {
     if (!dbUser) {
@@ -196,12 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/profile/edit');
       }
     } else {
-      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && pathname !== '/messages' && !isSearchRoute) {
+      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && !pathname.startsWith('/messages') && !isSearchRoute) {
         router.push('/');
       }
     }
 
-  }, [user, isProfileComplete, loading, pathname, router, dbUser]);
+  }, [user, isProfileComplete, loading, pathname, router]);
 
   const signInWithProvider = async (provider: GithubAuthProvider | GoogleAuthProvider) => {
     setLoading(true);
