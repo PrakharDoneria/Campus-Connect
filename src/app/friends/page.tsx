@@ -31,8 +31,8 @@ export default function FriendsPage() {
       try {
         setLoading(true);
         const [requests, currentFriends] = await Promise.all([
-          getUsers(dbUser.friendRequestsReceived),
-          getUsers(dbUser.friends),
+          getUsers(dbUser.friendRequestsReceived || []),
+          getUsers(dbUser.friends || []),
         ]);
         setFriendRequests(requests);
         setFriends(currentFriends);

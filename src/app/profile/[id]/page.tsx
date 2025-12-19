@@ -49,7 +49,7 @@ export default function UserProfilePage() {
 
         const [userPosts, userFriends] = await Promise.all([
             getPostsByAuthor(fetchedUser.uid),
-            getUsers(fetchedUser.friends)
+            getUsers(fetchedUser.friends || [])
         ]);
         
         setPosts(userPosts);
@@ -110,8 +110,8 @@ export default function UserProfilePage() {
   const getFriendStatus = () => {
     if (authLoading || !dbUser || !user) return null;
     if (dbUser.blockedUsers?.includes(user.uid)) return 'blocked';
-    if (dbUser.friends.includes(user.uid)) return 'friends';
-    if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
+    if (dbUser.friends?.includes(user.uid)) return 'friends';
+    if (dbUser.friendRequestsSent?.includes(user.uid)) return 'sent';
     if (user.friendRequestsSent?.includes(dbUser.uid)) return 'received'; // Check if the other user sent a request to me
     return null;
   };
@@ -242,4 +242,3 @@ export default function UserProfilePage() {
     </div>
   );
 }
-

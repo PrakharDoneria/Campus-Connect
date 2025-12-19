@@ -187,8 +187,7 @@ export async function getRandomUsers({
 export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
   const users = await getUsersCollection();
   const fromUser = await users.findOne({ uid: fromUid });
-  const toUser = await users.findOne({ uid: toUid });
-
+  
   if (fromUid === toUid || fromUser?.friends?.includes(toUid)) {
       throw new Error("Invalid friend request.");
   }
@@ -314,7 +313,7 @@ export async function deleteUserAccount(uid: string): Promise<void> {
 
 export async function inferUserInteractionPreference(uid: string): Promise<Gender | 'everyone'> {
   const currentUser = await getUser(uid);
-  if (!currentUser) return 'everyone';
+  if (!currentUser || !currentUser.friends) return 'everyone';
 
   // 1. Get friends' details from MongoDB
   const friends = await getUsers(currentUser.friends);
