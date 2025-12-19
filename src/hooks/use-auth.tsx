@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
+            // Immediately get and save the token upon permission grant
             await handleFcmToken(user.uid);
             toast({
                 title: "Notifications Enabled!",
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 friendRequestsSent: [],
                 friendRequestsReceived: [],
                 blockedUsers: [],
+                fcmToken: '',
             } as Partial<IUser>;
             mongoUser = await createUser(newUser);
         }
@@ -129,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
         setIsProfileComplete(profileComplete);
 
+        // This check remains important for users logging in on a new device where permission might already be granted.
         if (profileComplete) {
             await handleFcmToken(firebaseUser.uid);
         }

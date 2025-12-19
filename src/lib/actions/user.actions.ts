@@ -80,6 +80,7 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
     friendRequestsSent: [],
     friendRequestsReceived: [],
     blockedUsers: [],
+    fcmToken: '',
     ...user,
   };
 
