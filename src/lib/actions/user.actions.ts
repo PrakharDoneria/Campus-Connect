@@ -5,6 +5,9 @@ import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser, Gender } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 import { sendPushNotification } from './notification.actions';
+import { firestore } from '@/lib/firebase';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+
 
 async function getDb() {
     const client = await clientPromise;
@@ -37,13 +40,15 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
 
 export async function getUser(uid: string): Promise<IUser | null> {
   const usersCollection = await getUsersCollection();
+  // Ensure we are querying with a valid string UID, not an ObjectId string
+  if (ObjectId.isValid(uid)) {
+    const userById = await getUserById(uid);
+    if(userById) return userById;
+  }
+  
   const user = await usersCollection.findOne({ uid });
+
   if (!user) {
-    // Fallback for profiles that are referenced by Mongo ID instead of UID
-    if (ObjectId.isValid(uid)) {
-        const userById = await getUserById(uid);
-        return userById;
-    }
     return null;
   }
   // Convert _id to string for serialization
@@ -320,3 +325,52 @@ export async function deleteUserAccount(uid: string): Promise<void> {
     await session.endSession();
   }
 }
+
+export async function inferUserInteractionPreference(uid: string): Promise<Gender | 'everyone'> {
+  const currentUser = await getUser(uid);
+  if (!currentUser) return 'everyone';
+
+  const interactedUserUids = new Set<string>();
+
+  // 1. Get friends
+  currentUser.friends.forEach(friendUid => interactedUserUids.add(friendUid));
+
+  // 2. Get recent message partners
+  const messagesRef = collection(firestore, 'messages');
+  const sentQuery = query(messagesRef, where('from', '==', uid), orderBy('createdAt', 'desc'), limit(25));
+  const receivedQuery = query(messagesRef, where('to', '==', uid), orderBy('createdAt', 'desc'), limit(25));
+
+  const [sentSnapshot, receivedSnapshot] = await Promise.all([getDocs(sentQuery), getDocs(receivedQuery)]);
+  sentSnapshot.forEach(doc => interactedUserUids.add(doc.data().to));
+  receivedSnapshot.forEach(doc => interactedUserUids.add(doc.data().from));
+  
+  // No interactions, return everyone
+  if (interactedUserUids.size === 0) {
+    return 'everyone';
+  }
+
+  // 3. Fetch user details for interacted UIDs
+  const interactedUsers = await getUsers(Array.from(interactedUserUids));
+
+  // 4. Analyze genders
+  let maleCount = 0;
+  let femaleCount = 0;
+  interactedUsers.forEach(user => {
+    if (user.gender === 'male') maleCount++;
+    if (user.gender === 'female') femaleCount++;
+  });
+
+  const total = maleCount + femaleCount;
+  if (total === 0) return 'everyone';
+
+  const maleRatio = maleCount / total;
+  const femaleRatio = femaleCount / total;
+
+  // 5. Determine preference
+  if (maleRatio > 0.7) return 'male';
+  if (femaleRatio > 0.7) return 'female';
+  
+  return 'everyone';
+}
+
+    
