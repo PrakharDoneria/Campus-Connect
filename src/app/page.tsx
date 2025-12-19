@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { GraduationCap, Users, Compass, Github } from 'lucide-react';
-import LandingHeader from '@/components/layout/LandingHeader';
 import {
   Sheet,
   SheetContent,
@@ -42,7 +42,6 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <LandingHeader />
       <main className="flex-1">
         <section className="relative w-full py-20 md:py-32 lg:py-40">
           <div className="container mx-auto px-4 md:px-6">
