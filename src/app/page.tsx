@@ -132,7 +132,7 @@ export default function Home() {
 
       <footer className="border-t">
         <div className="container mx-auto flex items-center justify-between px-4 py-6 md:px-6">
-          <p className="text-sm text-muted-foreground">&copy; 2024 Campus Connect. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">&copy; 2025-26 Campus Connect. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link href="#" className="text-sm hover:text-primary">
               Privacy
