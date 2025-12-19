@@ -33,7 +33,7 @@ export async function sendMessage(fromUid: string, toUid: string, text: string):
   ]);
 
   if (toUser?.fcmToken && fromUser) {
-      sendPushNotification({
+      await sendPushNotification({
           token: toUser.fcmToken,
           title: fromUser.name,
           body: text,
