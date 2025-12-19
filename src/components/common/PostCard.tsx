@@ -71,7 +71,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
 
   useEffect(() => {
     // Only fetch comments if there are any and they haven't been fetched yet
-    if (post.comments.length > 0 && !commentsFetched) {
+    if (showComments && post.comments.length > 0 && !commentsFetched) {
       const fetchComments = async () => {
         setIsLoadingComments(true);
         try {
@@ -86,7 +86,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
       };
       fetchComments();
     }
-  }, [post._id, post.comments.length, commentsFetched, toast, comments]);
+  }, [post._id, post.comments.length, commentsFetched, toast, showComments, comments]);
 
 
   const handleLike = async () => {
@@ -211,12 +211,12 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                    <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
                       Edit Post
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => setShowDeleteAlert(true)}
+                      onSelect={() => setShowDeleteAlert(true)}
                     >
                       Delete Post
                     </DropdownMenuItem>
@@ -341,3 +341,5 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
     </>
   );
 }
+
+    
