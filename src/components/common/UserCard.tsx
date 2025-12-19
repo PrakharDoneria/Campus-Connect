@@ -82,11 +82,13 @@ export function UserCard({ user }: { user: IUser }) {
       </CardContent>
       <div className="flex w-full gap-2 mt-auto pt-4">
         {dbUser?.uid !== user.uid && renderFriendButton()}
-        <Button size="sm" variant="outline" className="flex-1" asChild>
-            <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`}>
-                <MessageSquare className="mr-2 h-4 w-4" /> Message
-            </Link>
-        </Button>
+        { dbUser?.uid !== user.uid && dbUser?.friends?.includes(user.uid) && (
+            <Button size="sm" variant="outline" className="flex-1" asChild>
+                <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message
+                </Link>
+            </Button>
+        )}
       </div>
     </Card>
   );

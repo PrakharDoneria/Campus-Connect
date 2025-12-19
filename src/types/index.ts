@@ -20,7 +20,7 @@ export interface IUser {
   friends: string[]; // array of UIDs
   friendRequestsSent: string[]; // array of UIDs
   friendRequestsReceived: string[]; // array of UIDs
-  blockedUsers: string[]; // array of UIDs
+  blockedUsers?: string[]; // array of UIDs
 }
 
 export interface PostAuthor {
@@ -38,7 +38,7 @@ export interface IPost {
     createdAt: Date;
     editedAt?: Date;
     likes: string[]; // Array of user UIDs
-    comments: string[]; // Array of comment IDs
+    comments: (string | ObjectId)[]; // Array of comment IDs
 }
 
 export interface IComment {

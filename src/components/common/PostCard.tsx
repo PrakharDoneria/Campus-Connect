@@ -72,7 +72,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
 
   useEffect(() => {
     // Only fetch comments if there are any and they haven't been fetched yet
-    if (showComments && post.comments.length > 0 && !commentsFetched) {
+    if (showComments && Array.isArray(post.comments) && post.comments.length > 0 && !commentsFetched) {
       const fetchComments = async () => {
         setIsLoadingComments(true);
         try {

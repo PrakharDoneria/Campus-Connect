@@ -180,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Allow access to public profile pages
     const isPublicProfileRoute = /^\/profile\/[a-zA-Z0-9]+$/.test(pathname);
+    const isSearchRoute = pathname === '/search';
 
     if (user) {
       if (isProfileComplete === false && !isProfileEditRoute) {
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // If user is not logged in
-      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && pathname !== '/messages') {
+      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && pathname !== '/messages' && !isSearchRoute) {
         router.push('/');
       }
     }
