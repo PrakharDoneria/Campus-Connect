@@ -10,6 +10,7 @@ import type { IUser } from '@/types';
 import { useToast } from './use-toast';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { urlBase64ToUint8Array } from '@/lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -89,13 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestNotificationPermission = useCallback(async () => {
-    if (!("Notification" in window) || !dbUser) {
-      console.log("This browser does not support desktop notification");
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !dbUser) {
+      toast({
+        title: "Unsupported",
+        description: "Push notifications are not supported in this browser or you're not logged in.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (Notification.permission === 'granted') {
-      console.log('Permission already granted.');
+       toast({ title: "Already Enabled", description: "You've already enabled notifications." });
       return;
     }
 
@@ -103,29 +108,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         console.log('Notification permission granted.');
-        // Now get the subscription
         try {
+          const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+          if (!vapidKey) {
+            throw new Error('VAPID key is not defined.');
+          }
+
           const serviceWorker = await navigator.serviceWorker.ready;
           const subscription = await serviceWorker.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
           });
           
-          await updateUser(dbUser.uid, { pushSubscription: subscription });
+          await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
           
           toast({
             title: "Notifications Enabled!",
             description: "You'll now receive updates from Campus Connect.",
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to subscribe to push notifications:', error);
           toast({
             title: "Subscription Failed",
-            description: "Could not enable notifications. Please try again.",
+            description: error.message || "Could not enable notifications. Please try again.",
             variant: "destructive",
           });
         }
       }
+    } else {
+        toast({
+            title: "Permission Denied",
+            description: "You have blocked notifications. Please enable them in your browser settings.",
+            variant: "destructive",
+        })
     }
   }, [dbUser, toast]);
 
