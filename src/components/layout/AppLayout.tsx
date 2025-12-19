@@ -6,6 +6,7 @@ import LandingHeader from './LandingHeader';
 import MobileNavBar from './MobileNavBar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePathname } from 'next/navigation';
+import { NotificationPermissionPrompt } from '../common/NotificationPermissionPrompt';
 
 const noNavRoutes = ['/'];
 
@@ -23,6 +24,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       {showMobileNav && <MobileNavBar />}
+      {dbUser && <NotificationPermissionPrompt />}
     </div>
   );
 }
