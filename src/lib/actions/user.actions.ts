@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import { IMessage, IUser } from '@/types';
+import { IMessage, IUser, Gender } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 import { sendPushNotification } from './notification.actions';
 
@@ -150,6 +150,40 @@ export async function getNearbyUsers({
   })) as IUser[];
 }
 
+export async function getRandomUsers({
+    currentUserId,
+    preference,
+    limit = 20
+}: {
+    currentUserId: string;
+    preference: Gender | 'everyone';
+    limit?: number;
+}): Promise<IUser[]> {
+    const usersCollection = await getUsersCollection();
+    
+    const pipeline: any[] = [
+        // Exclude the current user and any users they have blocked or have blocked them
+        { $match: { 
+            _id: { $ne: new ObjectId(currentUserId) },
+        }},
+        // Sample random documents
+        { $sample: { size: limit * 2 } } // Sample more to filter down
+    ];
+
+    if (preference !== 'everyone') {
+        // Insert the gender match at the beginning of the pipeline for efficiency
+        pipeline.unshift({ $match: { gender: preference } });
+    }
+
+    const randomUsers = await usersCollection.aggregate(pipeline).limit(limit).toArray();
+    
+    return randomUsers.map(user => ({
+        ...user,
+        _id: user._id.toString(),
+    })) as IUser[];
+}
+
+
 export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
   const users = await getUsersCollection();
   const fromUser = await users.findOne({ uid: fromUid });
@@ -164,7 +198,7 @@ export async function sendFriendRequest(fromUid: string, toUid: string): Promise
 
   // Send notification
   if (toUser?.fcmToken && fromUser) {
-    sendPushNotification({
+    await sendPushNotification({
       token: toUser.fcmToken,
       title: "You have a new friend request!",
       body: `${fromUser.name} wants to be your friend.`,

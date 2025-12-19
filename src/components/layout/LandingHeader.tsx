@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -56,7 +57,7 @@ function DesktopNavLinks() {
 
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
-    { href: '/nearby', icon: <Compass />, text: 'Nearby' },
+    { href: '/nearby', icon: <Compass />, text: 'Discover' },
     { href: '/friends', icon: <Users />, text: 'Friends', badge: friendRequestCount },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
   ];
