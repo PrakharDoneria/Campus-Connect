@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -9,14 +8,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { updateUser } from '@/lib/actions/user.actions';
+import { updateUser, deleteUserAccount } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
-import { Loader2, LocateFixed } from 'lucide-react';
+import { Loader2, LocateFixed, Trash2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Gender } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Shimmer } from '@/components/common/Shimmer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Separator } from '@/components/ui/separator';
 
 const profileSchema = z.object({
   university: z.string().min(1, 'University is required'),
@@ -34,12 +44,15 @@ type Coordinates = {
 };
 
 export default function ProfileEditPage() {
-  const { user, dbUser } = useAuth();
+  const { user, dbUser, signOut } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
 
   const {
     control,
@@ -162,10 +175,31 @@ export default function ProfileEditPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeleting(true);
+    try {
+        await deleteUserAccount(user.uid);
+        toast({
+            title: "Account Deleted",
+            description: "Your account has been permanently deleted. We're sad to see you go!",
+        });
+        await signOut(); // This will sign out from Firebase and redirect
+    } catch(error) {
+        console.error("Failed to delete account:", error);
+        toast({
+            title: "Error",
+            description: "Could not delete your account. Please try again.",
+            variant: "destructive",
+        });
+        setIsDeleting(false);
+    }
+  }
+
   if (!user || !dbUser) {
     return (
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
-             <Card className="w-full max-w-md">
+             <Card className="w-full max-w-lg">
                 <CardHeader>
                     <Shimmer className="h-8 w-3/4" />
                     <Shimmer className="h-4 w-1/2" />
@@ -190,8 +224,9 @@ export default function ProfileEditPage() {
   const isInitialSetup = !dbUser.university;
 
   return (
+    <>
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-2xl">{isInitialSetup ? 'Finish Your Profile' : 'Edit Your Profile'}</CardTitle>
           <CardDescription>
@@ -274,8 +309,42 @@ export default function ProfileEditPage() {
               {isSubmitting ? <Loader2 className="animate-spin" /> : isInitialSetup ? 'Save and Continue' : 'Save Changes' }
             </Button>
           </form>
+           <Separator className="my-6" />
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
+              <div className="rounded-lg border border-destructive p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Delete Account</h4>
+                    <p className="text-sm text-muted-foreground">Permanently delete your account and all of your content.</p>
+                  </div>
+                  <Button variant="destructive" onClick={() => setShowDeleteAlert(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
         </CardContent>
       </Card>
     </div>
+    <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your account, posts, comments, and all other data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Yes, delete my account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

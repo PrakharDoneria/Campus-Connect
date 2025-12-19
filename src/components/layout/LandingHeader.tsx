@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -14,7 +13,8 @@ import {
   Share2,
   User,
   Users,
-  Compass
+  Compass,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -35,20 +35,28 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-
+import { Input } from '../ui/input';
 
 function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   const pathname = usePathname();
   const { toast } = useToast();
   const { unreadMessagesCount, friendRequestCount } = useAuth();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = React.useState('');
 
-   const handleInvite = async () => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    if (onLinkClick) onLinkClick();
+  };
+
+  const handleInvite = async () => {
     if (onLinkClick) onLinkClick();
     const inviteUrl = window.location.origin;
     if (navigator.share) {
@@ -78,7 +86,16 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   ];
 
   return (
-    <nav className="flex flex-col gap-2 p-4 md:flex-row md:p-0">
+    <div className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:gap-1 md:p-0">
+      <form onSubmit={handleSearchSubmit} className="relative md:mr-2">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search users..."
+          className="pl-9 w-full md:w-48"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </form>
       <TooltipProvider>
         {navItems.map((item) => (
           <Tooltip key={item.href}>
@@ -112,7 +129,7 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
             <Share2 />
             <span className="ml-2">Invite Friend</span>
         </Button>
-    </nav>
+    </div>
   );
 }
 
@@ -129,7 +146,7 @@ export default function LandingHeader() {
           <GraduationCap className="h-6 w-6 text-primary" />
           <span className="hidden sm:inline-block">Campus Connect</span>
         </Link>
-        <nav className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
           {!loading &&
             (user && dbUser ? (
               <>
@@ -202,7 +219,7 @@ export default function LandingHeader() {
                 </SheetContent>
               </Sheet>
             ))}
-        </nav>
+        </div>
       </div>
     </header>
   );

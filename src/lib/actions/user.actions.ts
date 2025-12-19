@@ -1,4 +1,3 @@
-
 'use server';
 
 import clientPromise from '@/lib/mongodb';
@@ -24,6 +23,12 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
       await db.collection<IUser>('users').createIndex({ uid: 1 }, { unique: true });
   } catch (e) {
       console.warn("Could not create unique index on users collection uid. This is expected if it already exists.");
+  }
+    // Ensure text index for searching
+  try {
+      await db.collection<IUser>('users').createIndex({ name: "text" });
+  } catch(e) {
+       console.warn("Could not create text index on users collection name. This is expected if it already exists.");
   }
   return db.collection<IUser>('users');
 }
@@ -209,7 +214,73 @@ export async function blockUser(blockerUid: string, blockedUid: string): Promise
     await removeFriend(blockerUid, blockedUid);
     await rejectFriendRequest(blockerUid, blockedUid); // covers requests sent and received
     await rejectFriendRequest(blockedUid, blockerUid);
+}
 
-    // Optional: add blocker to blocked user's list for two-way blocking
-    // await users.updateOne({ uid: blockedUid }, { $addToSet: { blockedUsers: blockerUid } });
+export async function searchUsersByName(query: string, currentUserId: string): Promise<IUser[]> {
+    const usersCollection = await getUsersCollection();
+    // Use a case-insensitive regex for partial matching
+    const users = await usersCollection.find({
+        name: { $regex: query, $options: 'i' },
+        _id: { $ne: new ObjectId(currentUserId) }
+    }).limit(20).toArray();
+
+    return users.map(user => ({
+        ...user,
+        _id: user._id.toString(),
+    })) as IUser[];
+}
+
+export async function deleteUserAccount(uid: string): Promise<void> {
+  const db = await getDb();
+  const usersCollection = db.collection<IUser>('users');
+  const postsCollection = db.collection('posts');
+  const commentsCollection = db.collection('comments');
+  const circlesCollection = db.collection('circles');
+  
+  const user = await usersCollection.findOne({ uid });
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  // Use a transaction for atomicity
+  const client = await clientPromise;
+  const session = client.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      // 1. Delete user's document
+      await usersCollection.deleteOne({ uid }, { session });
+
+      // 2. Delete user's posts
+      await postsCollection.deleteMany({ 'author.uid': uid }, { session });
+      
+      // 3. Delete user's comments
+      await commentsCollection.deleteMany({ 'author.uid': uid }, { session });
+      
+      // 4. Delete user's created circles
+      await circlesCollection.deleteMany({ creatorUid: uid }, { session });
+
+      // 5. Remove user's likes from all posts
+      await postsCollection.updateMany({ likes: uid }, { $pull: { likes: uid } }, { session });
+
+      // 6. Remove user's comments from all posts' comment arrays
+      // This is more complex and might be slow. A simpler approach is to just delete the comments.
+      // The frontend should be resilient to missing comment documents.
+
+      // 7. Remove from friends lists and requests
+      await usersCollection.updateMany(
+        { $or: [{ friends: uid }, { friendRequestsSent: uid }, { friendRequestsReceived: uid }] },
+        {
+          $pull: {
+            friends: uid,
+            friendRequestsSent: uid,
+            friendRequestsReceived: uid,
+          },
+        },
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 }
