@@ -41,7 +41,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!otherUserUid) {
-      if (!authLoading && conversationId) {
+      if (!authLoading && conversationId && dbUser) {
         // Handle case where user is not found or invalid conversation
         router.push('/messages');
       }
@@ -60,7 +60,7 @@ export default function ChatPage() {
         }
     };
     fetchOtherUser();
-  }, [otherUserUid, toast, authLoading, conversationId, router]);
+  }, [otherUserUid, toast, authLoading, conversationId, router, dbUser]);
 
 
   useEffect(() => {
