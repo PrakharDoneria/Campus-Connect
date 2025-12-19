@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -81,7 +80,9 @@ export default function ContributePage() {
             </Button>
             <div className="text-center">
               <p className="text-sm font-semibold">Or use UPI:</p>
-              <p className="text-lg font-mono p-2 bg-muted rounded-md mt-1">prakhardoneria@upi</p>
+               <a href="upi://pay?pa=prakhardoneria@upi&pn=Campus%20Connect" className="text-lg font-mono p-2 bg-muted rounded-md mt-1 inline-block hover:bg-muted/80 transition-colors">
+                prakhardoneria@upi
+              </a>
             </div>
           </CardContent>
         </Card>
