@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppProvider } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
+import AppLayout from '@/components/layout/AppLayout';
 
 export const metadata: Metadata = {
   title: 'Campus Connect',
@@ -25,7 +26,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AppProvider>
-          {children}
+          <AppLayout>
+            {children}
+          </AppLayout>
           <Toaster />
         </AppProvider>
       </body>

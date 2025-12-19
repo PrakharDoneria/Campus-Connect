@@ -42,9 +42,8 @@ import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Input } from '../ui/input';
 
-function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
+function DesktopNavLinks() {
   const pathname = usePathname();
-  const { toast } = useToast();
   const { unreadMessagesCount, friendRequestCount } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -53,29 +52,6 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    if (onLinkClick) onLinkClick();
-  };
-
-  const handleInvite = async () => {
-    if (onLinkClick) onLinkClick();
-    const inviteUrl = window.location.origin;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Join me on Campus Connect!',
-          text: `Check out Campus Connect, the social network for students.`,
-          url: inviteUrl,
-        });
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      navigator.clipboard.writeText(inviteUrl);
-      toast({
-        title: 'Invite Link Copied!',
-        description: 'The invite link has been copied to your clipboard.',
-      });
-    }
   };
 
   const navItems = [
@@ -86,12 +62,12 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
   ];
 
   return (
-    <div className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:gap-1 md:p-0">
-      <form onSubmit={handleSearchSubmit} className="relative md:mr-2">
+    <div className="flex items-center gap-2">
+      <form onSubmit={handleSearchSubmit} className="relative mr-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search users..."
-          className="pl-9 w-full md:w-48"
+          className="pl-9 w-48"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -103,32 +79,22 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
                 <Button
                     variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
                     asChild
-                    className="justify-start md:justify-center md:w-12 md:h-12 md:rounded-full"
-                    onClick={onLinkClick}
+                    className="justify-center w-12 h-12 rounded-full"
                 >
                 <Link href={item.href} className="relative">
                     {item.icon}
-                    <span className='md:hidden ml-2'>{item.text}</span>
                     {item.badge && item.badge > 0 ? (
                         <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 md:h-4 md:w-4">{item.badge}</Badge>
                     ) : null}
                 </Link>
                 </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="hidden md:block">
+            <TooltipContent side="bottom">
                 <p>{item.text}</p>
             </TooltipContent>
           </Tooltip>
         ))}
       </TooltipProvider>
-       <Button
-          variant='ghost'
-          onClick={handleInvite}
-          className="justify-start md:hidden"
-        >
-            <Share2 />
-            <span className="ml-2">Invite Friend</span>
-        </Button>
     </div>
   );
 }
@@ -136,9 +102,7 @@ function NavLinks({ onLinkClick }: { onLinkClick?: () => void }) {
 export default function LandingHeader() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut, dbUser } = useAuth();
   const isMobile = useIsMobile();
-  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-
-
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
@@ -150,20 +114,7 @@ export default function LandingHeader() {
           {!loading &&
             (user && dbUser ? (
               <>
-                {isMobile ? (
-                  <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                    <SheetTrigger asChild>
-                       <Button variant="ghost" size="icon">
-                        <PanelLeft />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="bottom" className="rounded-t-2xl h-auto">
-                        <NavLinks onLinkClick={() => setIsSheetOpen(false)} />
-                    </SheetContent>
-                  </Sheet>
-                ) : (
-                  <NavLinks />
-                )}
+                {!isMobile && <DesktopNavLinks />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer h-9 w-9">
