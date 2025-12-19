@@ -20,6 +20,7 @@ export async function sendPushNotification({ token, title, body }: NotificationP
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'User-Agent': 'CampusConnect/1.0',
             },
             body: JSON.stringify({
                 token,
