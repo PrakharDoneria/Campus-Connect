@@ -78,12 +78,11 @@ export default function ContributePage() {
                 Donate with PayPal
               </a>
             </Button>
-            <div className="text-center">
-              <p className="text-sm font-semibold">Or use UPI:</p>
-               <a href="upi://pay?pa=prakhardoneria@upi&pn=Campus%20Connect" className="text-lg font-mono p-2 bg-muted rounded-md mt-1 inline-block hover:bg-muted/80 transition-colors">
-                prakhardoneria@upi
+            <Button asChild className="w-full" variant="outline">
+              <a href="upi://pay?pa=prakhardoneria@upi&pn=Campus%20Connect">
+                Donate with UPI
               </a>
-            </div>
+            </Button>
           </CardContent>
         </Card>
 
