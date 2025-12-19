@@ -39,10 +39,10 @@ export function UserCard({ user }: { user: IUser }) {
   };
 
   const friendStatus = useMemo(() => {
-    if (loading || !dbUser || !user || !dbUser.friends) return null;
-    if (dbUser.friends.includes(user.uid)) return 'friends';
-    if (dbUser.friendRequestsSent.includes(user.uid)) return 'sent';
-    if (dbUser.friendRequestsReceived.includes(user.uid)) return 'received';
+    if (loading || !dbUser || !user) return null;
+    if (dbUser.friends?.includes(user.uid)) return 'friends';
+    if (dbUser.friendRequestsSent?.includes(user.uid)) return 'sent';
+    if (dbUser.friendRequestsReceived?.includes(user.uid)) return 'received';
     return null;
   }, [dbUser, user, loading]);
 
@@ -83,7 +83,7 @@ export function UserCard({ user }: { user: IUser }) {
       <div className="flex w-full gap-2 mt-auto pt-4">
         {dbUser?.uid !== user.uid && renderFriendButton()}
         <Button size="sm" variant="outline" className="flex-1" asChild>
-            <Link href={`/messages?with=${user.uid}`}>
+            <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`}>
                 <MessageSquare className="mr-2 h-4 w-4" /> Message
             </Link>
         </Button>
