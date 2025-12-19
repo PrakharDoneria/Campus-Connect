@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,7 +24,9 @@ export default function MessagesLayout({
               // On desktop, always render the list and the active child (chat or default message).
               <>
                 {list}
-                {children}
+                <div className="md:col-span-2 lg:col-span-3">
+                    {children}
+                </div>
               </>
             )}
         </div>
