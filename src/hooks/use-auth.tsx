@@ -203,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/profile/edit');
       }
     } else {
-      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && !pathname.startsWith('/messages') && !isSearchRoute) {
+      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && !pathname.startsWith('/messages') && !isSearchRoute && pathname !== '/contribute') {
         router.push('/');
       }
     }
