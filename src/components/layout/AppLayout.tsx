@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
 
 const noNavRoutes = ['/'];
+const showHeaderRoutes = ['/', '/feed'];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { dbUser } = useAuth();
@@ -33,10 +34,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showMobileNav = isMobile && dbUser && !noNavRoutes.includes(pathname);
+  const showHeader = showHeaderRoutes.includes(pathname);
 
   return (
     <div className="flex min-h-screen flex-col">
-      <LandingHeader />
+      {showHeader && <LandingHeader />}
       <main className="flex-1 pb-16 md:pb-0">
         {children}
       </main>
