@@ -10,7 +10,8 @@ import { NotificationPermissionPrompt } from '../common/NotificationPermissionPr
 import { useEffect } from 'react';
 import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
 
-const noNavRoutes = ['/'];
+const noNavRoutes = ['/', '/profile/edit'];
+
 const showHeaderRoutes = ['/', '/feed'];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const showMobileNav = isMobile && dbUser && !noNavRoutes.includes(pathname);
+  const showMobileNav = isMobile && dbUser && !noNavRoutes.includes(pathname) && !pathname.startsWith('/messages/');
   const showHeader = showHeaderRoutes.includes(pathname);
 
   return (
