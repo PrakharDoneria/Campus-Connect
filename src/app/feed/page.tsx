@@ -295,7 +295,7 @@ export default function FeedPage() {
           )}
         </div>
 
-        <aside className="hidden lg:block lg:col-span-1 space-y-8">
+        <aside className="lg:col-span-1 space-y-8">
           {dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
            {dbUser && <Card>
               <CardHeader><CardTitle>Your Circles</CardTitle></CardHeader>
