@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
+import Image from 'next/image';
 
 interface PostCardProps {
   post: IPost;
@@ -233,10 +234,17 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <p className={cn("text-card-foreground whitespace-pre-wrap", isGuest && "blur-sm select-none")}>
-            {post.content}
-          </p>
+        <CardContent className="space-y-4">
+          {post.content && (
+            <p className={cn("text-card-foreground whitespace-pre-wrap", isGuest && "blur-sm select-none")}>
+              {post.content}
+            </p>
+          )}
+          {post.imageUrl && (
+             <div className={cn("relative mt-4 aspect-video w-full overflow-hidden rounded-lg", isGuest && "blur-sm select-none")}>
+                <Image src={post.imageUrl} alt="Post image" fill className="object-cover" />
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike} disabled={isLiking}>

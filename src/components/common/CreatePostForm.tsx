@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { IPost, IUser, ICircle } from '@/types';
 import { createPost } from '@/lib/actions/post.actions';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Image as ImageIcon, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   Select,
@@ -29,24 +29,66 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { createCircle } from '@/lib/actions/circle.actions';
+import Image from 'next/image';
 
 interface CreatePostFormProps {
   user: IUser;
   circles: ICircle[];
   onPostCreated: (newPost: IPost) => void;
   onCircleCreated: (newCircle: ICircle) => void;
+  defaultCircle?: string;
 }
 
-export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }: CreatePostFormProps) {
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+
+export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated, defaultCircle }: CreatePostFormProps) {
   const [content, setContent] = useState('');
-  const [selectedCircle, setSelectedCircle] = useState<string>('general');
+  const [selectedCircle, setSelectedCircle] = useState<string>(defaultCircle || 'general');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | undefined>(undefined);
 
   const [isCreatingCircle, setIsCreatingCircle] = useState(false);
   const [newCircleName, setNewCircleName] = useState('');
   const [newCircleDescription, setNewCircleDescription] = useState('');
   const [isCircleDialogOpen, setIsCircleDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (defaultCircle) {
+      setSelectedCircle(defaultCircle);
+    }
+  }, [defaultCircle]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "Image too large",
+          description: "Please select an image smaller than 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setImageBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const removeImage = () => {
+      setImagePreview(null);
+      setImageBase64(undefined);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+  }
 
 
   const handleCreateCircle = async () => {
@@ -74,10 +116,10 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (content.trim().length < 3) {
+    if (!content.trim() && !imageBase64) {
       toast({
-        title: 'Post is too short',
-        description: 'Your post must be at least 3 characters long.',
+        title: 'Empty Post',
+        description: 'Your post needs some content or an image.',
         variant: 'destructive',
       });
       return;
@@ -93,12 +135,13 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
 
     setIsSubmitting(true);
     try {
-      const newPost = await createPost(content, selectedCircle, user);
+      const newPost = await createPost({ content, circle: selectedCircle, imageBase64 }, user);
       toast({
         title: 'Post Created!',
         description: 'Your post is now live on the feed.',
       });
       setContent('');
+      removeImage();
       onPostCreated(newPost);
     } catch (error) {
       console.error('Failed to create post:', error);
@@ -113,8 +156,8 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
   };
   
   const suggestedCircles = useMemo(() => {
-    return circles.filter(c => user.joinedCircles?.includes(c.name) || c.name === 'general');
-  }, [circles, user.joinedCircles]);
+    return circles.filter(c => user.joinedCircles?.includes(c.name) || c.name === 'general' || c.name === defaultCircle);
+  }, [circles, user.joinedCircles, defaultCircle]);
 
 
   return (
@@ -133,10 +176,24 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
               className="min-h-[60px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 bg-card"
             />
           </div>
+           {imagePreview && (
+                <div className="relative w-full max-w-sm">
+                    <Image src={imagePreview} alt="Selected image preview" width={400} height={400} className="rounded-md object-cover" />
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full"
+                        onClick={removeImage}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                <Select onValueChange={setSelectedCircle} value={selectedCircle}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-auto md:w-[180px]">
                   <SelectValue placeholder="Select a circle" />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,6 +206,22 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
                   )}
                 </SelectContent>
               </Select>
+               <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Add image"
+                >
+                  <ImageIcon className="h-5 w-5" />
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/png, image/jpeg, image/gif"
+                />
               <Dialog open={isCircleDialogOpen} onOpenChange={setIsCircleDialogOpen}>
                 <DialogTrigger asChild>
                     <Button variant="ghost" size="icon" aria-label="Create new circle">
@@ -195,7 +268,7 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
                 </DialogContent>
               </Dialog>
             </div>
-            <Button type="submit" disabled={isSubmitting || content.trim().length === 0 || !selectedCircle}>
+            <Button type="submit" disabled={isSubmitting || (!content.trim() && !imageBase64) || !selectedCircle}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -36,6 +36,7 @@ export interface IPost {
     type: 'post';
     author: PostAuthor;
     content: string;
+    imageUrl?: string;
     circle: string; // Circle name
     createdAt: Date;
     editedAt?: Date;

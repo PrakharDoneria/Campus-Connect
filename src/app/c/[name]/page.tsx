@@ -63,6 +63,12 @@ export default function CircleFeedPage() {
   const handlePostUpdate = (updatedPost: IPost) => {
     setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
   };
+  
+   const handleCircleCreated = (newCircle: ICircle) => {
+    // This is a bit of a hack, but we need to refresh the circles list in the parent
+    // A better solution would involve a global state manager like Zustand or Redux
+    window.location.reload();
+  }
 
   const handleJoinOrLeave = async () => {
     if (!dbUser) {
@@ -133,7 +139,8 @@ export default function CircleFeedPage() {
             user={dbUser} 
             circles={[circle]} 
             onPostCreated={handlePostCreated} 
-            onCircleCreated={() => {}} 
+            onCircleCreated={handleCircleCreated}
+            defaultCircle={name}
           />
         </div>
       )}

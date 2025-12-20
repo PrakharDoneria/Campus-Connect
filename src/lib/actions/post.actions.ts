@@ -6,6 +6,15 @@ import { IPost, IUser, FeedItem } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 import { getUser } from './user.actions';
 import { sendPushNotification } from './notification.actions';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config();
+} else {
+  console.warn('CLOUDINARY_URL is not set. Image uploads will not work.');
+}
+
 
 async function getPostsCollection(): Promise<Collection<Omit<IPost, '_id'>>> {
   const client = await clientPromise;
@@ -13,12 +22,35 @@ async function getPostsCollection(): Promise<Collection<Omit<IPost, '_id'>>> {
   return db.collection<Omit<IPost, '_id'>>('posts');
 }
 
-export async function createPost(content: string, circle: string, user: IUser): Promise<IPost> {
+async function uploadImage(base64Image: string): Promise<string> {
+    if (!process.env.CLOUDINARY_URL) {
+        throw new Error("Cloudinary is not configured.");
+    }
+    try {
+        const result = await cloudinary.uploader.upload(base64Image, {
+            folder: 'campus-connect',
+        });
+        return result.secure_url;
+    } catch (error) {
+        console.error("Cloudinary upload failed:", error);
+        throw new Error("Failed to upload image.");
+    }
+}
+
+export async function createPost(
+    { content, circle, imageBase64 }: { content: string; circle: string; imageBase64?: string },
+    user: IUser
+): Promise<IPost> {
   if (!user || !user.uid || !user.name || !user.university) {
     throw new Error('User information is missing to create a post.');
   }
   if (!circle) {
     throw new Error('Circle is required to create a post.');
+  }
+
+  let imageUrl: string | undefined;
+  if (imageBase64) {
+      imageUrl = await uploadImage(imageBase64);
   }
 
   const postsCollection = await getPostsCollection();
@@ -33,6 +65,7 @@ export async function createPost(content: string, circle: string, user: IUser): 
     },
     content: content,
     circle: circle,
+    imageUrl,
     createdAt: new Date(),
     likes: [],
     comments: [], // Always initialize as an empty array
