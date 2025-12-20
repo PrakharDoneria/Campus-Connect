@@ -103,7 +103,9 @@ export default function FeedPage() {
     if (!dbUser) return [];
     const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
     // Also include circles user has posted in
-    const postedInCircleNames = feedItems.filter(p => p.author.uid === dbUser.uid).map(p => p.circle);
+    const postedInCircleNames = feedItems
+      .filter(p => p.type === 'post' && (p as IPost).author.uid === dbUser.uid)
+      .map(p => (p as IPost).circle);
     const activityCircles = [...new Set([...createdCircleNames, ...postedInCircleNames])];
     // Always include 'general' if it's not there and the user has some activity
     if (activityCircles.length > 0 && !activityCircles.includes('general')) {
@@ -122,7 +124,9 @@ export default function FeedPage() {
     if (!circleSearch.trim()) {
         return [];
     }
-    return feedItems.filter(p => p.circle.toLowerCase().includes(circleSearch.toLowerCase()));
+    const searchLower = circleSearch.toLowerCase();
+    // Filter posts, assignments, doubts by circle name
+    return feedItems.filter(item => item.circle.toLowerCase().includes(searchLower));
   }, [feedItems, circleSearch]);
 
 
@@ -206,6 +210,7 @@ export default function FeedPage() {
         <CreatePostForm 
             user={dbUser} 
             circles={circles}
+            userActivityCircles={circlesWithUserActivity}
             onPostCreated={handleItemCreated as (p: IPost) => void} 
             onCircleCreated={handleCircleCreated}
         />

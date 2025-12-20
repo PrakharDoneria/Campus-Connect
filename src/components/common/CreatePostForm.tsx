@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,11 +33,12 @@ import { createCircle } from '@/lib/actions/circle.actions';
 interface CreatePostFormProps {
   user: IUser;
   circles: ICircle[];
+  userActivityCircles: string[];
   onPostCreated: (newPost: IPost) => void;
   onCircleCreated: (newCircle: ICircle) => void;
 }
 
-export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }: CreatePostFormProps) {
+export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated, userActivityCircles }: CreatePostFormProps) {
   const [content, setContent] = useState('');
   const [selectedCircle, setSelectedCircle] = useState<string>('general');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +112,11 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
       setIsSubmitting(false);
     }
   };
+  
+  const suggestedCircles = useMemo(() => {
+    return circles.filter(c => userActivityCircles.includes(c.name));
+  }, [circles, userActivityCircles]);
+
 
   return (
     <Card>
@@ -125,7 +131,7 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What's happening on campus?"
-              className="min-h-[60px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0"
+              className="min-h-[60px] flex-1 resize-none border-0 shadow-none focus-visible:ring-0 bg-card"
             />
           </div>
           <div className="flex justify-between items-center">
@@ -135,9 +141,13 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }
                   <SelectValue placeholder="Select a circle" />
                 </SelectTrigger>
                 <SelectContent>
-                  {circles.map(circle => (
-                    <SelectItem key={circle.name} value={circle.name}>c/{circle.name}</SelectItem>
-                  ))}
+                  {suggestedCircles.length > 0 ? (
+                    suggestedCircles.map(circle => (
+                        <SelectItem key={circle.name} value={circle.name}>c/{circle.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="general">c/general</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <Dialog open={isCircleDialogOpen} onOpenChange={setIsCircleDialogOpen}>

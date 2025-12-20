@@ -5,13 +5,13 @@ import { IAssignment } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { DollarSign } from 'lucide-react';
+import { IndianRupee } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
 
 export function AssignmentCard({ assignment }: { assignment: IAssignment }) {
     return (
-        <Card className="border-l-4 border-accent transition-all hover:shadow-md">
+        <Card className="border-l-4 border-accent transition-all hover:shadow-md bg-card">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                     <div className="flex items-center gap-4 flex-1">
@@ -35,7 +35,7 @@ export function AssignmentCard({ assignment }: { assignment: IAssignment }) {
                     </div>
                      {assignment.isPaid && (
                         <div className="flex items-center gap-2 text-lg font-bold text-green-500 bg-green-500/10 px-3 py-1 rounded-full mt-2 sm:mt-0">
-                            <DollarSign className="h-5 w-5" />
+                            <IndianRupee className="h-5 w-5" />
                             <span>{assignment.reward}</span>
                         </div>
                     )}

@@ -13,51 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import { createAssignment, getAssignments } from '@/lib/actions/assignment.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import type { IAssignment, ICircle } from '@/types';
-import { Loader2, DollarSign, Plus } from 'lucide-react';
+import { Loader2, IndianRupee } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-
-function AssignmentCard({ assignment }: { assignment: IAssignment }) {
-    return (
-        <Card className="border-l-4 border-accent">
-            <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Avatar>
-                        <AvatarImage src={assignment.author.avatarUrl} alt={assignment.author.name} />
-                        <AvatarFallback>{assignment.author.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{assignment.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>by {assignment.author.name}</span>
-                            <span>•</span>
-                             <Link href={`/c/${assignment.circle}`} className="hover:underline">
-                                c/{assignment.circle}
-                            </Link>
-                            <span>•</span>
-                            <span>{formatDistanceToNow(new Date(assignment.createdAt), { addSuffix: true })}</span>
-                        </div>
-                         <p className="text-sm font-bold text-primary mt-1">{assignment.subject}</p>
-                    </div>
-                     {assignment.isPaid && (
-                        <div className="flex items-center gap-2 text-lg font-bold text-green-500 bg-green-500/10 px-3 py-1 rounded-full">
-                            <DollarSign className="h-5 w-5" />
-                            <span>{assignment.reward}</span>
-                        </div>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent>
-                <p className="whitespace-pre-wrap">{assignment.description}</p>
-                <p className="text-sm text-destructive font-semibold mt-4">Due: {format(new Date(assignment.dueDate), "PPP")}</p>
-            </CardContent>
-        </Card>
-    );
-}
-
+import { AssignmentCard } from '@/components/common/AssignmentCard';
 
 export default function AssignmentsPage() {
     const { dbUser, loading: authLoading } = useAuth();
@@ -143,7 +105,7 @@ export default function AssignmentsPage() {
             <h1 className="text-3xl font-bold mb-6">Share an Assignment</h1>
             
             <Card className="mb-8">
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="title">Title</Label>
@@ -188,8 +150,8 @@ export default function AssignmentsPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="reward">Reward Amount</Label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input id="reward" value={reward} onChange={e => setReward(e.target.value)} placeholder="e.g., 20 or Coffee" className="pl-8" />
+                                        <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input id="reward" value={reward} onChange={e => setReward(e.target.value)} placeholder="e.g., 500 or Coffee" className="pl-8" />
                                     </div>
                                 </div>
                             )}
