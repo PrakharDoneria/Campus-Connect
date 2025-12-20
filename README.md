@@ -51,7 +51,7 @@ Create a `.env` file in the root of the project by copying the example structure
 - **Firebase**: Go to your Firebase project settings and copy your web app's configuration into the `NEXT_PUBLIC_FIREBASE_*` variables.
 - **MongoDB**: Get your connection string from your MongoDB Atlas dashboard and set it as `MONGODB_URI`. Make sure to add your IP address to the IP access list in Atlas.
 - **Google AI**: Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and set it as `GOOGLE_API_KEY`.
-- **Firebase VAPID Key**: In your Firebase project, go to Project Settings > Cloud Messaging and generate a new key pair under "Web configuration". Add this to `NEXT_PUBLIC_FIREBASE_VAPID_KEY`.
+- **Push Notifications (VAPID Keys)**: Generate a VAPID key pair for push notifications using `npx web-push generate-vapid-keys`. Add the public key to `NEXT_PUBLIC_FIREBASE_VAPID_KEY` and private key to `VAPID_PRIVATE_KEY`. See [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) for detailed setup instructions.
 
 ### 4. Set up MongoDB Index
 

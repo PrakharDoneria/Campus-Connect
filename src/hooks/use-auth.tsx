@@ -92,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestNotificationPermission = useCallback(async () => {
     if (!("Notification" in window) || !("serviceWorker" in navigator) || !dbUser) {
+      console.warn('[Notifications] Push notifications are not supported or user not logged in.');
       toast({
         title: "Unsupported",
         description: "Push notifications are not supported in this browser or you're not logged in.",
@@ -101,11 +102,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   
     if (Notification.permission === 'granted') {
+      console.log('[Notifications] Notification permission already granted.');
       toast({ title: "Already Enabled", description: "You've already enabled notifications." });
       return;
     }
   
     if (Notification.permission === 'denied') {
+      console.warn('[Notifications] Notification permission was denied by user.');
       toast({
         title: "Permission Denied",
         description: "You have blocked notifications. Please enable them in your browser settings.",
@@ -115,32 +118,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   
     try {
+      console.log('[Notifications] Requesting notification permission...');
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         throw new Error('Notification permission not granted.');
       }
-  
+      
+      console.log('[Notifications] Permission granted. Waiting for service worker...');
       const serviceWorkerRegistration = await navigator.serviceWorker.ready;
       
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
-        throw new Error('VAPID key is not defined.');
+        throw new Error('VAPID key is not defined. Please check your environment configuration.');
       }
       
+      console.log('[Notifications] Subscribing to push notifications...');
       const applicationServerKey = urlBase64ToUint8Array(vapidKey);
       const subscription = await serviceWorkerRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
       });
   
+      console.log('[Notifications] Subscription successful. Saving to database...');
       await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
       
+      console.log('[Notifications] Push notification setup complete!');
       toast({
         title: "Notifications Enabled!",
         description: "You'll now receive updates from Campus Connect.",
       });
 
       // Send a test notification after 5 seconds
+      console.log('[Notifications] Sending test notification in 5 seconds...');
       setTimeout(() => {
         sendPushNotification({
           userId: dbUser.uid,
@@ -150,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }, 5000);
   
     } catch (error: any) {
-      console.error('Failed to subscribe to push notifications:', error);
+      console.error('[Notifications] Failed to subscribe to push notifications:', error);
       toast({
         title: "Subscription Failed",
         description: error.message || "Could not enable notifications. Please try again.",
