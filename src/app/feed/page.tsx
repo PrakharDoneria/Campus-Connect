@@ -19,6 +19,7 @@ import { AssignmentCard } from '@/components/common/AssignmentCard';
 import { DoubtCard } from '@/components/common/DoubtCard';
 import { UserCard } from '@/components/common/UserCard';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 function SuggestionsCarousel({ users }: { users: IUser[] }) {
     if (users.length === 0) return null;
