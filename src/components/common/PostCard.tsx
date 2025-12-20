@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Heart, Loader2, MoreHorizontal, Send } from 'lucide-react';
+import { MessageCircle, Heart, Loader2, MoreHorizontal, Send, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IPost, IComment } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -175,6 +175,30 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
     }
   };
 
+  const renderContentWithLinks = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline inline-flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
 
   const isLikedByCurrentUser = user && post.likes.includes(user.uid);
   const isAuthor = user && post.author.uid === user.uid;
@@ -237,7 +261,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
         <CardContent className="space-y-4">
           {post.content && (
             <p className={cn("text-card-foreground whitespace-pre-wrap", isGuest && "blur-sm select-none")}>
-              {post.content}
+              {renderContentWithLinks(post.content)}
             </p>
           )}
           {post.imageUrl && (
