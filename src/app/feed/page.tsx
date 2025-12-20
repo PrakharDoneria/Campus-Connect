@@ -262,9 +262,10 @@ export default function FeedPage() {
           )}
           
            <Tabs defaultValue="everyone" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className={dbUser ? "grid w-full grid-cols-3" : "grid w-full grid-cols-2"}>
               <TabsTrigger value="everyone">Everyone</TabsTrigger>
               <TabsTrigger value="for-you" disabled={!dbUser}>For You</TabsTrigger>
+              {dbUser && <TabsTrigger value="my-circles" className="hidden md:inline-flex">My Circles</TabsTrigger>}
             </TabsList>
             <TabsContent value="everyone" className="mt-6">
               {renderFeed(interleavedFeedItems, "It's awfully quiet in here... Be the first to post something!", true)}
@@ -279,6 +280,33 @@ export default function FeedPage() {
                 </div>
                )}
             </TabsContent>
+             {dbUser && (
+                <TabsContent value="my-circles" className="mt-6">
+                    <div className="space-y-4">
+                        {userJoinedCircles.length > 0 ? (
+                            userJoinedCircles.map(circle => (
+                            <Link href={`/c/${circle.name}`} key={circle.name} className="block p-4 border rounded-lg hover:bg-muted">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-semibold">c/{circle.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{circle.description}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Users className="h-4 w-4" />
+                                        <span>{circle.memberCount || 0}</span>
+                                    </div>
+                                </div>
+                            </Link>
+                            ))
+                        ) : (
+                            <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card">
+                                <p>You haven't joined any circles yet.</p>
+                                <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+            )}
           </Tabs>
 
            {isGuest && !loading && (
@@ -295,7 +323,7 @@ export default function FeedPage() {
           )}
         </div>
 
-        <aside className="lg:col-span-1 space-y-8">
+        <aside className="hidden lg:block lg:col-span-1 space-y-8">
           {dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
            {dbUser && <Card>
               <CardHeader><CardTitle>Your Circles</CardTitle></CardHeader>
