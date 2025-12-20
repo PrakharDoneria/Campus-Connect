@@ -11,7 +11,11 @@ self.addEventListener('push', (event) => {
     data = JSON.parse(text);
   } catch (error) {
     console.error('[Service Worker] Failed to parse push data:', error);
-    data = { title: 'Campus Connect', body: 'You have a new notification.' };
+    data = { 
+      title: 'Campus Connect', 
+      body: 'You have a new notification.',
+      data: { url: '/' }
+    };
   }
   
   const title = data.title || 'Campus Connect';
@@ -20,7 +24,7 @@ self.addEventListener('push', (event) => {
     icon: '/icon-192x192.png', // Make sure you have this icon
     badge: '/badge-72x72.png', // Optional: for the notification bar
     data: {
-        url: data.data?.url || '/'
+        url: (data.data && data.data.url) ? data.data.url : '/'
     }
   };
 
