@@ -212,14 +212,14 @@ export default function ChatPage() {
         <Button variant="ghost" size="icon" onClick={() => router.push('/messages')}>
             <ArrowLeft className="h-5 w-5" />
         </Button>
-        <Link href={`/profile/${otherUser._id}`} className="flex items-center gap-2">
+        <Link href={`/profile/${otherUser.uid}`} className="flex items-center gap-2">
           <Avatar>
             <AvatarImage src={otherUser.photoUrl} alt={otherUser.name} />
             <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
           </Avatar>
         </Link>
         <div className='flex-1'>
-            <Link href={`/profile/${otherUser._id}`}>
+            <Link href={`/profile/${otherUser.uid}`}>
                 <h2 className="text-lg font-bold hover:underline">{otherUser.name}</h2>
             </Link>
             <p className='text-xs text-muted-foreground'>Active now</p>

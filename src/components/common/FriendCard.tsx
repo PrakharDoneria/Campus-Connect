@@ -14,7 +14,7 @@ export function FriendCard({ user, children }: { user: IUser; children?: React.R
         <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className="ml-4 flex-grow">
-        <Link href={`/profile/${user._id}`}>
+        <Link href={`/profile/${user.uid}`}>
             <p className="font-semibold hover:underline">{user.name}</p>
         </Link>
         <p className="text-sm text-muted-foreground">{user.university}</p>

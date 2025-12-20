@@ -60,7 +60,7 @@ export default function UserProfilePage() {
       if (!id) return;
       try {
         setLoading(true);
-        // It could be a UID or a Mongo _id
+        // It could be a UID or a Mongo _id, getUser handles both
         const fetchedUser = await getUser(id);
         if (!fetchedUser) {
           notFound();
@@ -130,7 +130,7 @@ export default function UserProfilePage() {
 
   const handleShareProfile = () => {
     if (!user) return;
-    const profileUrl = `${window.location.origin}/profile/${user._id}`;
+    const profileUrl = `${window.location.origin}/profile/${user.uid}`;
     navigator.clipboard.writeText(profileUrl);
     toast({
         title: "Profile Link Copied!",
@@ -189,13 +189,13 @@ export default function UserProfilePage() {
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-4 -mt-20">
             <Avatar className="w-28 h-28 sm:w-32 sm:h-32 border-4 border-background shrink-0">
-               <Link href={`/profile/${user._id.toString()}`}>
+               <Link href={`/profile/${user.uid}`}>
                 <AvatarImage src={user.photoUrl} alt={user.name} />
                 <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
               </Link>
             </Avatar>
             <div className="mt-4 sm:mt-0 flex-grow">
-               <Link href={`/profile/${user._id.toString()}`}>
+               <Link href={`/profile/${user.uid}`}>
                 <h1 className="text-2xl sm:text-3xl font-bold hover:underline">{user.name}</h1>
               </Link>
               <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-muted-foreground mt-2">

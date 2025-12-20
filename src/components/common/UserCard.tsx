@@ -67,7 +67,7 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
   if (variant === 'compact') {
     return (
        <Card className="flex flex-col text-center p-4 transition-all hover:shadow-lg h-full overflow-hidden">
-         <Link href={`/profile/${user._id.toString()}`} className="flex-grow flex flex-col items-center">
+         <Link href={`/profile/${user.uid}`} className="flex-grow flex flex-col items-center">
             <Avatar className="w-20 h-20 mx-auto border-2 border-primary">
               <AvatarImage src={user.photoUrl} alt={user.name} />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -87,7 +87,7 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
   return (
     <Card className="flex flex-col items-center justify-center p-4 text-center h-full transition-all hover:shadow-lg hover:border-primary">
       <CardHeader className="p-2">
-        <Link href={`/profile/${user._id.toString()}`}>
+        <Link href={`/profile/${user.uid}`}>
           <Avatar className="w-24 h-24 mx-auto border-4 border-primary">
             <AvatarImage src={user.photoUrl} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -95,7 +95,7 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
         </Link>
       </CardHeader>
       <CardContent className="p-2 space-y-2 flex-grow flex flex-col justify-center">
-        <Link href={`/profile/${user._id.toString()}`}>
+        <Link href={`/profile/${user.uid}`}>
             <h3 className="font-bold text-lg hover:underline">{user.name}</h3>
         </Link>
         <p className="text-sm text-muted-foreground">{user.university}</p>
@@ -114,5 +114,3 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
     </Card>
   );
 }
-
-    

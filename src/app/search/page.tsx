@@ -39,7 +39,7 @@ function SearchResults() {
       setLoading(true);
       try {
         const [users, circles] = await Promise.all([
-          dbUser ? searchUsersByName(query, dbUser._id.toString()) : Promise.resolve([]),
+          dbUser ? searchUsersByName(query, dbUser._id) : Promise.resolve([]),
           searchCircles(query)
         ]);
         setUserResults(users);

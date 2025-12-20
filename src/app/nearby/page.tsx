@@ -44,7 +44,7 @@ export default function NearbyPage() {
       setLoadingNearby(true);
       setError(null);
       const fetchedUsers = await getNearbyUsers({
-        userId: dbUser._id.toString(),
+        userId: dbUser._id,
         long: dbUser.location.coordinates[0],
         lat: dbUser.location.coordinates[1],
         maxDistance: searchRadius * 1000, // convert km to meters
@@ -71,7 +71,7 @@ export default function NearbyPage() {
         const inferredPreference = await inferUserInteractionPreference(dbUser.uid);
         
         const fetchedUsers = await getRandomUsers({
-            currentUserId: dbUser._id.toString(),
+            currentUserId: dbUser._id,
             preference: inferredPreference,
         });
         setRandomUsers(fetchedUsers);
@@ -196,5 +196,3 @@ export default function NearbyPage() {
     </div>
   );
 }
-
-    

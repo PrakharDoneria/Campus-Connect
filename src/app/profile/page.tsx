@@ -10,13 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, Edit, Github, Linkedin, Facebook } from 'lucide-react';
+import { Building, GraduationCap, Edit, Github, Linkedin, Facebook, Share2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { FriendCard } from '@/components/common/FriendCard';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 function InstagramIcon(props: any) {
     return (
@@ -45,6 +46,7 @@ export default function OwnProfilePage() {
   const [friends, setFriends] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     // If auth is not loading and there's no dbUser, redirect or show not found
@@ -81,6 +83,16 @@ export default function OwnProfilePage() {
   
   const handlePostDelete = (postId: string) => {
     setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
+  };
+
+  const handleShareProfile = () => {
+    if (!dbUser) return;
+    const profileUrl = `${window.location.origin}/profile/${dbUser.uid}`;
+    navigator.clipboard.writeText(profileUrl);
+    toast({
+        title: "Profile Link Copied!",
+        description: "The link to your profile has been copied to your clipboard.",
+    });
   };
 
 
@@ -144,6 +156,9 @@ export default function OwnProfilePage() {
             <div className="flex justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
               <Button asChild variant="outline">
                 <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
+              </Button>
+               <Button variant="outline" onClick={handleShareProfile}>
+                <Share2 className="mr-2 h-4 w-4" /> Share
               </Button>
             </div>
           </div>
