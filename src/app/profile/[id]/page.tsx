@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { PostCard } from '@/components/common/PostCard';
 import { useToast } from '@/hooks/use-toast';
 import { FriendCard } from '@/components/common/FriendCard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function UserProfilePage() {
@@ -166,7 +168,7 @@ export default function UserProfilePage() {
                <Link href={`/profile/${user._id.toString()}`}>
                 <h1 className="text-2xl sm:text-3xl font-bold hover:underline">{user.name}</h1>
               </Link>
-              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-muted-foreground mt-2">
                 <div className="flex items-center gap-2">
                   <Building className="h-4 w-4" />
                   <span>{user.university}</span>
@@ -175,6 +177,11 @@ export default function UserProfilePage() {
                   <GraduationCap className="h-4 w-4" />
                   <span>{user.major}</span>
                 </div>
+                {user.universityCircle && (
+                    <Link href={`/c/${user.universityCircle}`}>
+                        <Badge variant="secondary">c/{user.universityCircle}</Badge>
+                    </Link>
+                )}
               </div>
             </div>
             <div className="flex w-full sm:w-auto justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
@@ -186,7 +193,7 @@ export default function UserProfilePage() {
                 <>
                   {renderFriendButton()}
                   <Button variant="outline" asChild disabled={friendStatus !== 'friends'} className="flex-1 sm:flex-initial">
-                    <Link href={`/messages?with=${user.uid}`} onClick={e => e.stopPropagation()}>
+                    <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`} onClick={e => e.stopPropagation()}>
                       <MessageSquare className="mr-2 h-4 w-4" /> Message
                     </Link>
                   </Button>

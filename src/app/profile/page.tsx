@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { FriendCard } from '@/components/common/FriendCard';
+import { Badge } from '@/components/ui/badge';
 
 export default function OwnProfilePage() {
   const { dbUser, loading: authLoading } = useAuth();
@@ -88,7 +90,7 @@ export default function OwnProfilePage() {
             </Avatar>
             <div className="mt-4 sm:mt-0 flex-grow">
               <h1 className="text-2xl sm:text-3xl font-bold">{dbUser.name}</h1>
-              <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-muted-foreground mt-2">
+              <div className="flex items-center flex-wrap gap-x-4 gap-y-2 text-muted-foreground mt-2">
                 <div className="flex items-center gap-2">
                   <Building className="h-4 w-4" />
                   <span>{dbUser.university}</span>
@@ -97,6 +99,11 @@ export default function OwnProfilePage() {
                   <GraduationCap className="h-4 w-4" />
                   <span>{dbUser.major}</span>
                 </div>
+                 {dbUser.universityCircle && (
+                    <Link href={`/c/${dbUser.universityCircle}`}>
+                        <Badge variant="secondary">c/{dbUser.universityCircle}</Badge>
+                    </Link>
+                )}
               </div>
             </div>
             <div className="flex justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">

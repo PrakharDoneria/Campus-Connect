@@ -10,7 +10,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { updateUser, deleteUserAccount } from '@/lib/actions/user.actions';
-import { createCircle, getCircles, getCircleByName, joinCircle } from '@/lib/actions/circle.actions';
+import { createCircle, getCircles, getCircleByName, joinCircle, searchCircles } from '@/lib/actions/circle.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, LocateFixed, Trash2, Plus, Search } from 'lucide-react';
@@ -69,6 +69,11 @@ export default function ProfileEditPage() {
   const [isCircleLoading, setIsCircleLoading] = useState(false);
   const [isJoiningCircle, setIsJoiningCircle] = useState(false);
 
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ICircle[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
 
   const {
     control,
@@ -100,6 +105,21 @@ export default function ProfileEditPage() {
       setIsCircleLoading(false);
     }
   }, []);
+  
+  useEffect(() => {
+    if (searchQuery.trim().length > 2) {
+      const performSearch = async () => {
+        setIsSearching(true);
+        const results = await searchCircles(searchQuery);
+        setSearchResults(results);
+        setIsSearching(false);
+      };
+      const debounce = setTimeout(performSearch, 300);
+      return () => clearTimeout(debounce);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
 
   useEffect(() => {
     if (dbUser) {
@@ -156,14 +176,15 @@ export default function ProfileEditPage() {
     );
   };
     
-    const handleJoinUniversityCircle = async () => {
-        if (!user || !universityCircle) return;
+    const handleJoinUniversityCircle = async (circleToJoin: ICircle) => {
+        if (!user || !circleToJoin) return;
         setIsJoiningCircle(true);
         try {
-            await joinCircle(user.uid, universityCircle.name);
-            await updateUser(user.uid, { universityCircle: universityCircle.name });
-            toast({ title: "Joined Circle!", description: `You are now a member of c/${universityCircle.name}.` });
+            await joinCircle(user.uid, circleToJoin.name);
+            await updateUser(user.uid, { universityCircle: circleToJoin.name });
+            toast({ title: "Joined Circle!", description: `You are now a member of c/${circleToJoin.name}.` });
             await refreshDbUser(); // Refresh user data in context
+            setIsSearchOpen(false); // Close search dialog
         } catch (error) {
             toast({ title: 'Error', description: 'Could not join the circle.', variant: 'destructive' });
         } finally {
@@ -288,15 +309,42 @@ export default function ProfileEditPage() {
                 
                 {watchedUniversity && (
                     <div className="space-y-2 rounded-lg border p-4">
-                        <Label>University Circle</Label>
-                         <p className="text-sm text-muted-foreground pb-2">
-                            This is your home base on campus. Join your university's official circle.
-                        </p>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <Label>University Circle</Label>
+                                <p className="text-sm text-muted-foreground pb-2">
+                                    Join your university's official community.
+                                </p>
+                            </div>
+                            <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" size="icon"><Search className="h-4 w-4" /></Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Search for a Circle</DialogTitle>
+                                    </DialogHeader>
+                                    <Input placeholder="Type to search circles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {isSearching && <Loader2 className="mx-auto animate-spin" />}
+                                        {searchResults.map(circle => (
+                                            <div key={circle.name} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                                                <div>
+                                                    <p className="font-semibold">c/{circle.name}</p>
+                                                    <p className="text-sm text-muted-foreground">{circle.description}</p>
+                                                </div>
+                                                <Button size="sm" onClick={() => handleJoinUniversityCircle(circle)} disabled={isJoiningCircle}>Join</Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                         {isCircleLoading ? <Shimmer className="h-10 w-full" /> : (
                             dbUser.universityCircle ? (
                                 <Button variant="secondary" className="w-full" disabled>Joined c/{dbUser.universityCircle}</Button>
                             ) : universityCircle ? (
-                                <Button type="button" onClick={handleJoinUniversityCircle} disabled={isJoiningCircle} className="w-full">
+                                <Button type="button" onClick={() => handleJoinUniversityCircle(universityCircle)} disabled={isJoiningCircle} className="w-full">
                                     {isJoiningCircle ? <Loader2 className="animate-spin" /> : <Plus />}
                                     Join c/{universityCircle.name}
                                 </Button>
