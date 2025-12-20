@@ -12,8 +12,9 @@ async function getCirclesCollection(): Promise<Collection<Omit<ICircle, '_id'>>>
   // Ensure index on name for faster lookups and uniqueness
   try {
       await db.collection<Omit<ICircle, '_id'>>('circles').createIndex({ name: 1 }, { unique: true });
+       await db.collection<Omit<ICircle, '_id'>>('circles').createIndex({ name: "text", description: "text" });
   } catch (e) {
-      console.warn("Could not create unique index on circles collection name. This is expected if it already exists.");
+      console.warn("Could not create indexes on circles collection. This is expected if they already exist.");
   }
   return db.collection<Omit<ICircle, '_id'>>('circles');
 }
@@ -116,4 +117,20 @@ export async function leaveCircle(userUid: string, circleName: string): Promise<
         { uid: userUid },
         { $pull: { joinedCircles: circleName } }
     );
+}
+
+
+export async function searchCircles(query: string): Promise<ICircle[]> {
+  const circlesCollection = await getCirclesCollection();
+  const circles = await circlesCollection.find({
+    $or: [
+      { name: { $regex: query, $options: 'i' } },
+      { description: { $regex: query, $options: 'i' } }
+    ]
+  }).limit(10).toArray();
+
+  return circles.map(circle => ({
+    ...circle,
+    _id: circle._id.toString(),
+  })) as ICircle[];
 }

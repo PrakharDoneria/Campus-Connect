@@ -147,21 +147,25 @@ export default function FeedPage() {
   };
 
   const renderItem = (item: FeedItem | {type: 'suggestion', user: IUser}) => {
-    switch (item.type) {
+    // Backward compatibility for old posts without a 'type' field
+    const itemType = (item as FeedItem).type || ('content' in item ? 'post' : null);
+
+    switch (itemType) {
         case 'post':
             return <PostCard 
                 key={(item._id as string) + '-post'}
-                post={item} 
+                post={item as IPost} 
                 isGuest={isGuest}
                 onPostUpdate={handlePostUpdate}
                 onPostDelete={handlePostDelete}
               />;
         case 'assignment':
-            return <AssignmentCard key={(item._id as string) + '-assignment'} assignment={item} />;
+            return <AssignmentCard key={(item._id as string) + '-assignment'} assignment={item as IAssignment} />;
         case 'doubt':
-            return <DoubtCard key={(item._id as string) + '-doubt'} doubt={item} />;
+            return <DoubtCard key={(item._id as string) + '-doubt'} doubt={item as IDoubt} />;
         case 'suggestion':
-            return <UserCard key={item.user.uid + '-suggestion'} user={item.user} />;
+            const suggestion = item as {type: 'suggestion', user: IUser};
+            return <UserCard key={suggestion.user.uid + '-suggestion'} user={suggestion.user} />;
         default:
             return null;
     }
@@ -225,7 +229,14 @@ export default function FeedPage() {
           {renderFeed(interleavedFeed, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
         <TabsContent value="for-you" className="mt-6">
-           {renderFeed(forYouItems, "Join some circles to start building your personalized 'For You' feed!")}
+           {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
+             renderFeed(forYouItems, "No new posts from your circles.")
+           ) : (
+             <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card mt-6">
+              <p>Join some circles to start building your personalized 'For You' feed!</p>
+              <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
+            </div>
+           )}
         </TabsContent>
         <TabsContent value="your-circles" className="mt-6">
             <div className="space-y-4">
@@ -239,7 +250,7 @@ export default function FeedPage() {
               ) : (
                  <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card">
                     <p>You haven't joined any circles yet.</p>
-                    <Button asChild variant="link"><Link href="/feed">Explore Circles</Link></Button>
+                    <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
                 </div>
               )}
             </div>
