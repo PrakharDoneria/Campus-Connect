@@ -18,7 +18,8 @@ import { Shimmer } from '@/components/common/Shimmer';
 import { AssignmentCard } from '@/components/common/AssignmentCard';
 import { DoubtCard } from '@/components/common/DoubtCard';
 import { UserCard } from '@/components/common/UserCard';
-import { SuggestionsCarousel } from '@/components/common/SuggestionsCarousel';
+
+type FeedItemWithUser = FeedItem | { type: 'user_suggestion'; user: IUser };
 
 
 export default function FeedPage() {
@@ -94,6 +95,23 @@ export default function FeedPage() {
     setPage(nextPage);
     fetchFeed(nextPage);
   };
+  
+    const interleavedFeedItems = useMemo(() => {
+    const result: FeedItemWithUser[] = [...feedItems];
+    if (suggestedUsers.length > 0) {
+      for (let i = 0; i < suggestedUsers.length; i++) {
+        const user = suggestedUsers[i];
+        const position = (i + 1) * 4; // Insert a user card after every 3 content items
+        if (position <= result.length) {
+          result.splice(position, 0, { type: 'user_suggestion', user });
+        } else {
+           result.push({ type: 'user_suggestion', user });
+        }
+      }
+    }
+    return result;
+  }, [feedItems, suggestedUsers]);
+
 
   const userJoinedCircles = useMemo(() => {
     if (!dbUser?.joinedCircles) return [];
@@ -133,7 +151,11 @@ export default function FeedPage() {
     setForYouItems(prevItems => prevItems.filter(filterer));
   };
 
-  const renderItem = (item: FeedItem) => {
+  const renderItem = (item: FeedItemWithUser, index: number) => {
+    if (item.type === 'user_suggestion') {
+       return <UserCard key={item.user.uid} user={item.user} />;
+    }
+    
     const itemType = item.type || ('content' in item ? 'post' : null);
 
     switch (itemType) {
@@ -154,7 +176,7 @@ export default function FeedPage() {
     }
   }
 
-  const renderFeed = (itemsToRender: FeedItem[], emptyMessage: string, showPagination: boolean = false) => {
+  const renderFeed = (itemsToRender: FeedItemWithUser[], emptyMessage: string, showPagination: boolean = false) => {
     if (loading && itemsToRender.length === 0) {
       return (
         <div className="space-y-6">
@@ -177,7 +199,7 @@ export default function FeedPage() {
 
     return (
         <div className="space-y-6">
-            {limitedItems.map((item) => renderItem(item))}
+            {limitedItems.map((item, index) => renderItem(item, index))}
             {showPagination && !isGuest && hasMoreItems && (
                 <div className="text-center">
                     <Button onClick={handleLoadMore} disabled={loadingMore}>
@@ -209,13 +231,7 @@ export default function FeedPage() {
           <TabsTrigger value="your-circles" disabled={!dbUser}>Your Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone" className="mt-6">
-            {!isGuest && suggestedUsers.length > 0 && (
-                <div className='mb-6'>
-                    <h2 className="text-lg font-semibold mb-2">Suggested for you</h2>
-                    <SuggestionsCarousel users={suggestedUsers} />
-                </div>
-            )}
-          {renderFeed(feedItems, "It's awfully quiet in here... Be the first to post something!", true)}
+          {renderFeed(interleavedFeedItems, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
         <TabsContent value="for-you" className="mt-6">
            {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
@@ -261,5 +277,3 @@ export default function FeedPage() {
     </div>
   );
 }
-
-    
