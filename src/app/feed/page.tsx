@@ -37,8 +37,8 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
                                 <p className="font-semibold">c/{circle.name}</p>
                                 <p className="text-sm text-muted-foreground line-clamp-1">{circle.description}</p>
                             </div>
-                            <Button variant="outline" size="sm" asChild onClick={e => e.stopPropagation()}>
-                                <Link href={`/c/${circle.name}`}>View</Link>
+                            <Button variant="outline" size="sm" onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/c/${circle.name}`) }}>
+                                View
                             </Button>
                         </div>
                     </Link>
