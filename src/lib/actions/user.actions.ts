@@ -88,6 +88,7 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
     friendRequestsReceived: [],
     blockedUsers: [],
     joinedCircles: ['general'], // Automatically join 'general'
+    socials: {},
     ...user,
   };
 
