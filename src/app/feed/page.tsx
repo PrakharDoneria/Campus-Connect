@@ -5,98 +5,25 @@ import { useAuth } from '@/hooks/use-auth';
 import { PostCard } from '@/components/common/PostCard';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import type { IPost, ICircle, FeedItem, IAssignment, IDoubt } from '@/types';
-import { GraduationCap, Search, Loader2, DollarSign } from 'lucide-react';
+import type { IPost, ICircle, FeedItem, IAssignment, IDoubt, IUser } from '@/types';
+import { GraduationCap, Search, Loader2 } from 'lucide-react';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getFeedItems } from '@/lib/actions/post.actions';
+import { getRandomUsers } from '@/lib/actions/user.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { format, formatDistanceToNow } from 'date-fns';
-
-function AssignmentCard({ assignment }: { assignment: IAssignment }) {
-    return (
-        <Card className="border-l-4 border-accent">
-            <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Avatar>
-                        <AvatarImage src={assignment.author.avatarUrl} alt={assignment.author.name} />
-                        <AvatarFallback>{assignment.author.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{assignment.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>by {assignment.author.name}</span>
-                            <span>•</span>
-                             <Link href={`/c/${assignment.circle}`} className="hover:underline">
-                                c/{assignment.circle}
-                            </Link>
-                            <span>•</span>
-                            <span>{formatDistanceToNow(new Date(assignment.createdAt), { addSuffix: true })}</span>
-                        </div>
-                         <p className="text-sm font-bold text-primary mt-1">{assignment.subject}</p>
-                    </div>
-                     {assignment.isPaid && (
-                        <div className="flex items-center gap-2 text-lg font-bold text-green-500 bg-green-500/10 px-3 py-1 rounded-full">
-                            <DollarSign className="h-5 w-5" />
-                            <span>{assignment.reward}</span>
-                        </div>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent>
-                <p className="whitespace-pre-wrap">{assignment.description}</p>
-                <p className="text-sm text-destructive font-semibold mt-4">Due: {format(new Date(assignment.dueDate), "PPP")}</p>
-                <Button asChild className="mt-4">
-                    <Link href="/assignments">View Details</Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
-
-function DoubtCard({ doubt }: { doubt: IDoubt }) {
-    return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-start gap-4">
-                    <Avatar>
-                        <AvatarImage src={doubt.author.avatarUrl} alt={doubt.author.name} />
-                        <AvatarFallback>{doubt.author.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{doubt.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>by {doubt.author.name}</span>
-                            <span>•</span>
-                            <Link href={`/c/${doubt.circle}`} className="hover:underline">
-                                c/{doubt.circle}
-                            </Link>
-                            <span>•</span>
-                            <span>{formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
-                        </div>
-                         <p className="text-sm font-bold text-primary mt-1">{doubt.subject}</p>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <p className="whitespace-pre-wrap">{doubt.description}</p>
-                 <Button asChild className="mt-4">
-                    <Link href="/doubts">View Details & Answer</Link>
-                </Button>
-            </CardContent>
-        </Card>
-    );
-}
+import { AssignmentCard } from '@/components/common/AssignmentCard';
+import { DoubtCard } from '@/components/common/DoubtCard';
+import { UserCard } from '@/components/common/UserCard';
 
 
 export default function FeedPage() {
   const { user, dbUser } = useAuth();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
   const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
   const [circleSearch, setCircleSearch] = useState('');
@@ -123,19 +50,32 @@ export default function FeedPage() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!dbUser) {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
-        fetchFeed(1);
-        const fetchedCircles = await getCircles();
+        const [_, fetchedCircles, randomUsers] = await Promise.all([
+            fetchFeed(1),
+            getCircles(),
+            getRandomUsers({ currentUserId: dbUser._id.toString(), preference: 'everyone' })
+        ]);
         setCircles(fetchedCircles);
+        setSuggestedUsers(randomUsers);
       } catch (error) {
         console.error("Failed to fetch initial data:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchData();
-  }, [fetchFeed]);
+    if (dbUser) {
+        fetchData();
+    } else {
+        fetchFeed(1); // Fetch for guest
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbUser]);
   
   const handleLoadMore = () => {
     const nextPage = page + 1;
@@ -143,6 +83,22 @@ export default function FeedPage() {
     fetchFeed(nextPage);
   };
   
+  const interleavedFeed = useMemo(() => {
+    const combined: (FeedItem | {type: 'suggestion', user: IUser})[] = [...feedItems];
+    if (suggestedUsers.length > 0) {
+        // Intersperse suggested users, e.g., one every 4 items
+        for (let i = 0; i < suggestedUsers.length; i++) {
+            const insertionIndex = (i + 1) * 4;
+            if (insertionIndex < combined.length) {
+                combined.splice(insertionIndex, 0, { type: 'suggestion', user: suggestedUsers[i] });
+            } else {
+                 combined.push({ type: 'suggestion', user: suggestedUsers[i] });
+            }
+        }
+    }
+    return combined;
+  }, [feedItems, suggestedUsers]);
+
   const circlesWithUserActivity = useMemo(() => {
     if (!dbUser) return [];
     const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
@@ -186,33 +142,35 @@ export default function FeedPage() {
     setFeedItems(prevItems => prevItems.filter(p => p._id !== postId));
   };
 
-  const renderItem = (item: FeedItem) => {
+  const renderItem = (item: FeedItem | {type: 'suggestion', user: IUser}) => {
     switch (item.type) {
         case 'post':
             return <PostCard 
-                key={item._id.toString()} 
+                key={(item._id as string) + '-post'}
                 post={item} 
                 isGuest={isGuest}
                 onPostUpdate={handlePostUpdate}
                 onPostDelete={handlePostDelete}
               />;
         case 'assignment':
-            return <AssignmentCard key={item._id.toString()} assignment={item} />;
+            return <AssignmentCard key={(item._id as string) + '-assignment'} assignment={item} />;
         case 'doubt':
-            return <DoubtCard key={item._id.toString()} doubt={item} />;
+            return <DoubtCard key={(item._id as string) + '-doubt'} doubt={item} />;
+        case 'suggestion':
+            return <UserCard key={item.user.uid + '-suggestion'} user={item.user} />;
         default:
             return null;
     }
   }
 
-  const renderFeed = (itemsToRender: FeedItem[], emptyMessage: string, showPagination: boolean = false) => {
+  const renderFeed = (itemsToRender: (FeedItem | {type: 'suggestion', user: IUser})[], emptyMessage: string, showPagination: boolean = false) => {
     if (loading && feedItems.length === 0) {
       return (
-        <>
+        <div className="space-y-6">
           <Shimmer className="h-48 w-full" />
+          <Shimmer className="h-64 w-full" />
           <Shimmer className="h-48 w-full" />
-          <Shimmer className="h-48 w-full" />
-        </>
+        </div>
       );
     }
     
@@ -260,7 +218,7 @@ export default function FeedPage() {
           <TabsTrigger value="circles">Search Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone" className="mt-6">
-          {renderFeed(feedItems, "It's awfully quiet in here... Be the first to post something!", true)}
+          {renderFeed(interleavedFeed, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
         <TabsContent value="your-circles" className="mt-6">
            {renderFeed(itemsInUserCircles, "Join a circle or create one to see your curated feed!")}
