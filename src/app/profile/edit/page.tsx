@@ -13,7 +13,7 @@ import { updateUser, deleteUserAccount } from '@/lib/actions/user.actions';
 import { createCircle, getCircles, getCircleByName, joinCircle, searchCircles } from '@/lib/actions/circle.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, LocateFixed, Trash2, Plus, Search } from 'lucide-react';
+import { Loader2, LocateFixed, Trash2, Plus, Search, Github, Linkedin, Facebook } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Gender, ICircle } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -46,6 +46,12 @@ const profileSchema = z.object({
   gender: z.enum(['male', 'female', 'other'], {
     required_error: 'Please select your gender.',
   }),
+  socials: z.object({
+      github: z.string().optional(),
+      linkedin: z.string().optional(),
+      instagram: z.string().optional(),
+      facebook: z.string().optional(),
+  }).optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -54,6 +60,27 @@ type Coordinates = {
   latitude: number;
   longitude: number;
 };
+
+function InstagramIcon(props: any) {
+    return (
+        <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        >
+        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+        </svg>
+    )
+}
 
 export default function ProfileEditPage() {
   const { user, dbUser, signOut, refreshDbUser } = useAuth();
@@ -86,6 +113,12 @@ export default function ProfileEditPage() {
     defaultValues: {
       university: '',
       major: '',
+      socials: {
+        github: '',
+        linkedin: '',
+        instagram: '',
+        facebook: '',
+      }
     },
   });
 
@@ -125,7 +158,8 @@ export default function ProfileEditPage() {
     if (dbUser) {
       setValue('university', dbUser.university || '');
       setValue('major', dbUser.major || '');
-      setValue('gender', dbUser.gender);
+      setValue('gender', dbUser.gender as Gender);
+      setValue('socials', dbUser.socials || {});
       if (dbUser.location) {
         setCoordinates({
             latitude: dbUser.location.coordinates[1],
@@ -235,6 +269,7 @@ export default function ProfileEditPage() {
         university: data.university,
         major: data.major,
         gender: data.gender as Gender,
+        socials: data.socials,
         location: {
           type: 'Point' as const,
           coordinates: [coordinates.longitude, coordinates.latitude] as [number, number],
@@ -385,6 +420,37 @@ export default function ProfileEditPage() {
                     </Button>
                 </div>
             </div>
+            
+             <Separator />
+
+             <div className="space-y-4">
+                <Label>Social Profiles</Label>
+                <div className="space-y-2">
+                    <div className="relative">
+                        <Github className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Controller name="socials.github" control={control} render={({ field }) => <Input {...field} placeholder="github.com/username" className="pl-9" />} />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <div className="relative">
+                        <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Controller name="socials.linkedin" control={control} render={({ field }) => <Input {...field} placeholder="linkedin.com/in/username" className="pl-9" />} />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <div className="relative">
+                        <InstagramIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Controller name="socials.instagram" control={control} render={({ field }) => <Input {...field} placeholder="instagram.com/username" className="pl-9" />} />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <div className="relative">
+                        <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Controller name="socials.facebook" control={control} render={({ field }) => <Input {...field} placeholder="facebook.com/username" className="pl-9" />} />
+                    </div>
+                </div>
+             </div>
+
 
             <Button type="submit" className="w-full" disabled={isSubmitting || !coordinates || (!dbUser.universityCircle && isInitialSetup) }>
               {isSubmitting ? <Loader2 className="animate-spin" /> : isInitialSetup ? 'Save and Continue' : 'Save Changes' }

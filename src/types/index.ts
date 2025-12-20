@@ -23,6 +23,12 @@ export interface IUser {
   pushSubscription?: PushSubscriptionJSON;
   joinedCircles: string[]; // array of circle names
   universityCircle?: string; // name of the main university circle
+  socials?: {
+    github?: string;
+    linkedin?: string;
+    instagram?: string;
+    facebook?: string;
+  };
 }
 
 export interface PostAuthor {

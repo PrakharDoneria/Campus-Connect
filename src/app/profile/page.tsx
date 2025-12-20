@@ -10,13 +10,34 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, Edit } from 'lucide-react';
+import { Building, GraduationCap, Edit, Github, Linkedin, Facebook } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PostCard } from '@/components/common/PostCard';
 import { FriendCard } from '@/components/common/FriendCard';
 import { Badge } from '@/components/ui/badge';
+
+function InstagramIcon(props: any) {
+    return (
+        <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        >
+        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+        </svg>
+    )
+}
 
 export default function OwnProfilePage() {
   const { dbUser, loading: authLoading } = useAuth();
@@ -105,6 +126,20 @@ export default function OwnProfilePage() {
                     </Link>
                 )}
               </div>
+                <div className="flex items-center gap-2 mt-2">
+                    {dbUser.socials?.github && (
+                        <a href={`https://${dbUser.socials.github}`} target="_blank" rel="noopener noreferrer"><Button variant="ghost" size="icon"><Github /></Button></a>
+                    )}
+                    {dbUser.socials?.linkedin && (
+                        <a href={`https://${dbUser.socials.linkedin}`} target="_blank" rel="noopener noreferrer"><Button variant="ghost" size="icon"><Linkedin /></Button></a>
+                    )}
+                    {dbUser.socials?.instagram && (
+                        <a href={`https://${dbUser.socials.instagram}`} target="_blank" rel="noopener noreferrer"><Button variant="ghost" size="icon"><InstagramIcon /></Button></a>
+                    )}
+                    {dbUser.socials?.facebook && (
+                        <a href={`https://${dbUser.socials.facebook}`} target="_blank" rel="noopener noreferrer"><Button variant="ghost" size="icon"><Facebook /></Button></a>
+                    )}
+                </div>
             </div>
             <div className="flex justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
               <Button asChild variant="outline">
