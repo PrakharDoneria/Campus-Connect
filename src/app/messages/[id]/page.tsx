@@ -207,7 +207,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] bg-card/50 page-transition">
+    <div className="flex flex-col h-full bg-card/50 page-transition">
       <header className="flex flex-row items-center gap-2 p-2 border-b bg-background">
         <Button variant="ghost" size="icon" onClick={() => router.push('/messages')}>
             <ArrowLeft className="h-5 w-5" />

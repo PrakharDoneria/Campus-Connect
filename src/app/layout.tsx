@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: 'Campus Connect',
   description: 'A localized social network for college students to connect, share, and discover.',
   keywords: ['college', 'social network', 'students', 'campus', 'university'],
+  manifest: '/manifest.json',
 };
 
 

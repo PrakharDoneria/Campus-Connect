@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook } from 'lucide-react';
+import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook, Share2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -128,6 +128,16 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleShareProfile = () => {
+    if (!user) return;
+    const profileUrl = `${window.location.origin}/profile/${user._id}`;
+    navigator.clipboard.writeText(profileUrl);
+    toast({
+        title: "Profile Link Copied!",
+        description: "The link to this profile has been copied to your clipboard.",
+    });
+  };
+
   const getFriendStatus = () => {
     if (authLoading || !dbUser || !user) return null;
     if (dbUser.blockedUsers?.includes(user.uid)) return 'blocked';
@@ -238,6 +248,10 @@ export default function UserProfilePage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={handleShareProfile}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share Profile
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={handleBlockUser} className="text-destructive">
                         <ShieldBan className="mr-2 h-4 w-4" />
                         Block User

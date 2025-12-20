@@ -135,6 +135,16 @@ function ThemeToggleButton() {
 export default function LandingHeader() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut, dbUser } = useAuth();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+
+  const handleInvite = () => {
+    const inviteUrl = window.location.origin;
+    navigator.clipboard.writeText(inviteUrl);
+    toast({
+        title: 'Invite Link Copied!',
+        description: 'Share it with your friends to join Campus Connect.',
+    });
+  };
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -180,6 +190,10 @@ export default function LandingHeader() {
                         <HandCoins className="mr-2 h-4 w-4" />
                         <span>Contribute</span>
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleInvite}>
+                        <Share2 className="mr-2 h-4 w-4" />
+                        <span>Invite Friends</span>
                     </DropdownMenuItem>
                     <ThemeToggleButton />
                     <DropdownMenuSeparator />

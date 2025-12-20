@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -18,7 +19,7 @@ export default function MessagesClientLayout({
 
   return (
     <div className="container mx-auto max-w-7xl h-full">
-        <div className="grid h-[calc(100vh-80px)] md:h-[calc(100vh-80px)] grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid h-[calc(100vh-64px)] md:h-[calc(100vh-64px)] grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border">
             {isMobile ? (
               // On mobile, show list if no chat is open, otherwise show the chat window
               <Suspense fallback={<div>Loading...</div>}>

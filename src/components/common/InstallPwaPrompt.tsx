@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
@@ -24,15 +26,18 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallPwaPrompt() {
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setInstallPromptEvent(e as BeforeInstallPromptEvent);
-      // Show the install prompt after a short delay
-      setTimeout(() => setIsDialogOpen(true), 3000);
+      // Show the install prompt after a short delay if it hasn't been shown recently
+      const lastPrompted = localStorage.getItem('installPromptedAt');
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (!lastPrompted || (new Date().getTime() - Number(lastPrompted)) > oneDay) {
+        setTimeout(() => setIsDialogOpen(true), 3000);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -43,20 +48,21 @@ export function InstallPwaPrompt() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!installPromptEvent) {
-      return;
-    }
-    // Show the browser's install prompt.
+    if (!installPromptEvent) return;
+    
     await installPromptEvent.prompt();
-    // Wait for the user to respond to the prompt.
     const { outcome } = await installPromptEvent.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    // We've used the prompt, and it can't be used again, so clear it.
+    
+    if (outcome === 'accepted') {
+      toast({ title: "App Installed!", description: "Campus Connect is now on your home screen." });
+    }
+    
     setInstallPromptEvent(null);
     setIsDialogOpen(false);
   };
 
   const handleClose = () => {
+    localStorage.setItem('installPromptedAt', new Date().getTime().toString());
     setIsDialogOpen(false);
   };
 

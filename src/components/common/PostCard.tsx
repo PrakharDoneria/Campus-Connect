@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Heart, Loader2, MoreHorizontal, Send, ExternalLink } from 'lucide-react';
+import { MessageCircle, Heart, Loader2, MoreHorizontal, Send, ExternalLink, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IPost, IComment } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -174,6 +174,15 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
         setIsCommenting(false);
     }
   };
+  
+  const handleShare = () => {
+    const postUrl = `${window.location.origin}/post/${post._id}`;
+    navigator.clipboard.writeText(postUrl);
+    toast({
+      title: 'Link Copied!',
+      description: 'The link to this post has been copied to your clipboard.',
+    });
+  };
 
   const renderContentWithLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -278,6 +287,10 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
           <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-4 w-4" />
             <span>{commentCount}</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShare}>
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
           </Button>
         </CardFooter>
         
