@@ -151,30 +151,33 @@ export default function MessagesPage() {
               {filteredConversations.map(convoUser => {
                 const conversationId = dbUser ? [dbUser.uid, convoUser.uid].sort().join('_') : '';
                 const isActive = pathname === `/messages/${conversationId}`;
+                const isUnread = convoUser.lastMessage?.read === false && convoUser.lastMessage?.to === dbUser?.uid;
+
                 return (
                 <div key={convoUser.uid} className="group relative">
                     <Link
                     href={`/messages/${conversationId}`}
                     className={cn(
                         "flex items-center gap-3 p-4 text-muted-foreground transition-all border-b",
-                        isActive ? "bg-muted/50" : "hover:bg-muted/50"
+                        isActive ? "bg-muted/50" : "hover:bg-muted/50",
+                        isUnread && "bg-primary/10"
                     )}
                     >
-                    <Avatar className={cn("h-12 w-12 border-2 border-transparent")}>
+                    <Avatar className={cn("h-12 w-12 border-2", isUnread ? "border-primary" : "border-transparent")}>
                         <AvatarImage src={convoUser.photoUrl} alt={convoUser.name} />
                         <AvatarFallback>{convoUser.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 overflow-hidden">
                         <div className="flex justify-between items-center">
-                            <span className="font-semibold truncate text-foreground">{convoUser.name}</span>
+                            <span className={cn("font-semibold truncate text-foreground", isUnread && "font-bold")}>{convoUser.name}</span>
                             {convoUser.lastMessage?.createdAt && (
                                 <span className="text-xs text-muted-foreground">
                                     {formatDistanceToNow(new Date(convoUser.lastMessage.createdAt), { addSuffix: true })}
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm truncate text-muted-foreground">
-                            {convoUser.lastMessage?.text}
+                        <p className={cn("text-sm truncate", isUnread ? "text-foreground" : "text-muted-foreground")}>
+                            {convoUser.lastMessage?.from === dbUser?.uid && "You: "}{convoUser.lastMessage?.text}
                         </p>
                     </div>
                     </Link>

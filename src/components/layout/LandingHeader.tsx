@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,6 +17,8 @@ import {
   Search,
   Bell,
   HandCoins,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -44,6 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Input } from '../ui/input';
+import { useTheme } from 'next-themes';
 
 function DesktopNavLinks() {
   const pathname = usePathname();
@@ -117,6 +119,16 @@ function DesktopNavLinks() {
   );
 }
 
+function ThemeToggleButton() {
+    const { setTheme, theme } = useTheme();
+    return (
+        <DropdownMenuItem onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+            <span>Toggle Theme</span>
+        </DropdownMenuItem>
+    )
+}
+
 export default function LandingHeader() {
   const { user, loading, signInWithGitHub, signInWithGoogle, signOut, dbUser } = useAuth();
   const isMobile = useIsMobile();
@@ -155,6 +167,7 @@ export default function LandingHeader() {
                         <span>Contribute</span>
                       </Link>
                     </DropdownMenuItem>
+                    <ThemeToggleButton />
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="mr-2 h-4 w-4" />
