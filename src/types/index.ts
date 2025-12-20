@@ -66,3 +66,23 @@ export interface IMessage {
   createdAt: Date;
   read: boolean;
 }
+
+export interface IDoubt {
+  _id: string | ObjectId;
+  author: PostAuthor;
+  title: string;
+  description: string;
+  subject: string;
+  createdAt: Date;
+  answers: (string | ObjectId)[];
+}
+
+export interface IAssignment {
+  _id: string | ObjectId;
+  author: PostAuthor;
+  title: string;
+  description: string;
+  subject: string;
+  dueDate: Date;
+  createdAt: Date;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Campus Connect",
+  "short_name": "Campus",
+  "description": "A localized social network for college students.",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#A06CD5",
+  "theme_color": "#A06CD5",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

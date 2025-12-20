@@ -19,6 +19,8 @@ import {
   HandCoins,
   Moon,
   Sun,
+  HelpCircle,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { GoogleIcon } from '../icons';
@@ -61,6 +63,8 @@ function DesktopNavLinks() {
 
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
+    { href: '/doubts', icon: <HelpCircle />, text: 'Doubts' },
+    { href: '/assignments', icon: <FileText />, text: 'Assignments' },
     { href: '/nearby', icon: <Compass />, text: 'Discover' },
     { href: '/friends', icon: <Users />, text: 'Friends', badge: friendRequestCount },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },

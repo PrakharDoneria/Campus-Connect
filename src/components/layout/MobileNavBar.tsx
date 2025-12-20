@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, LayoutGrid, MessageSquare, Users } from 'lucide-react';
+import { Compass, LayoutGrid, MessageSquare, Users, HelpCircle, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,8 @@ export default function MobileNavBar() {
 
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
+    { href: '/doubts', icon: <HelpCircle />, text: 'Doubts' },
+    { href: '/assignments', icon: <FileText />, text: 'Assignments' },
     { href: '/nearby', icon: <Compass />, text: 'Discover' },
     { href: '/friends', icon: <Users />, text: 'Friends', badge: friendRequestCount },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
@@ -21,7 +23,7 @@ export default function MobileNavBar() {
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t md:hidden">
-      <div className="grid h-full max-w-lg grid-cols-4 mx-auto font-medium">
+      <div className="grid h-full max-w-lg grid-cols-6 mx-auto font-medium">
         {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -29,7 +31,7 @@ export default function MobileNavBar() {
             key={item.href}
             href={item.href}
             className={cn(
-                "inline-flex flex-col items-center justify-center px-5 hover:bg-muted group",
+                "inline-flex flex-col items-center justify-center px-1 hover:bg-muted group",
                 isActive ? "text-primary" : "text-muted-foreground"
             )}
           >

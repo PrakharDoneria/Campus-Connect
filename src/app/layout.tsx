@@ -33,6 +33,8 @@ export default function RootLayout({
       <head>
         <title>Campus Connect</title>
         <meta name="description" content="A localized social network for college students." />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#A06CD5" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
