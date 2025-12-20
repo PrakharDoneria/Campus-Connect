@@ -1,38 +1,28 @@
 
-'use client';
-
 import './globals.css';
 import { AppProvider } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
 import AppLayout from '@/components/layout/AppLayout';
-import { useEffect } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
+import type { Metadata } from 'next';
+
+// This is a default metadata object. Page-specific metadata will override this.
+export const metadata: Metadata = {
+  title: 'Campus Connect',
+  description: 'A localized social network for college students to connect, share, and discover.',
+  keywords: ['college', 'social network', 'students', 'campus', 'university'],
+};
+
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/firebase-messaging-sw.js')
-          .then((registration) => {
-            console.log('Service Worker registration successful, scope is:', registration.scope);
-          })
-          .catch((err) => {
-            console.log('Service Worker registration failed, error:', err);
-          });
-      });
-    }
-  }, []);
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Campus Connect</title>
-        <meta name="description" content="A localized social network for college students." />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#A06CD5" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -41,6 +31,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
+        <link rel="icon" href="/icon-192x192.png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body className="font-body antialiased">
         <ThemeProvider
