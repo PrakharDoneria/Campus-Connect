@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CreatePostForm } from '../common/CreatePostForm';
@@ -76,6 +78,9 @@ export default function MobileNavBar() {
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Create a new post</DialogTitle>
+                      </DialogHeader>
                       <CreatePostForm 
                         user={dbUser} 
                         circles={circles} 
