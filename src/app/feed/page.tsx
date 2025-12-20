@@ -50,9 +50,11 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
     if (recommended.length === 0) return null;
 
     return (
-        <div className="p-4 rounded-lg bg-card border sticky top-20">
-            <h3 className="font-bold text-lg mb-4">Recommended Circles</h3>
-            <div className="space-y-2">
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">Recommended Circles</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
                 {recommended.map(circle => (
                      <Link href={`/c/${circle.name}`} key={circle.name} className="block p-3 border rounded-lg hover:bg-muted transition-colors">
                         <div className="flex justify-between items-center">
@@ -66,8 +68,8 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
                         </div>
                     </Link>
                 ))}
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -293,9 +295,9 @@ export default function FeedPage() {
           )}
         </div>
 
-        <aside className="hidden lg:block lg:col-span-1">
+        <aside className="hidden lg:block lg:col-span-1 space-y-8">
           {dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
-           <Card className="mt-8">
+           {dbUser && <Card>
               <CardHeader><CardTitle>Your Circles</CardTitle></CardHeader>
               <CardContent>
                  <div className="space-y-4">
@@ -322,11 +324,9 @@ export default function FeedPage() {
                   )}
                 </div>
               </CardContent>
-           </Card>
+           </Card>}
         </aside>
       </div>
     </div>
   );
 }
-
-    
