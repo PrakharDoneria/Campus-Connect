@@ -130,9 +130,11 @@ export async function getNearbyUsers({
   limit?: number;
 }): Promise<IUser[]> {
   const usersCollection = await getUsersCollection();
+  const currentUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
   
   const users = await usersCollection.find({
     _id: { $ne: new ObjectId(userId) }, // Exclude the current user
+    uid: { $nin: currentUser?.friends || [] }, // Exclude friends
     location: {
       $near: {
         $geometry: {
@@ -160,22 +162,38 @@ export async function getRandomUsers({
     limit?: number;
 }): Promise<IUser[]> {
     const usersCollection = await getUsersCollection();
+    const currentUser = await usersCollection.findOne({ _id: new ObjectId(currentUserId) });
     
     const pipeline: any[] = [
-        // Exclude the current user and any users they have blocked or have blocked them
+        // Exclude the current user, their friends, and any users they have blocked or have blocked them
         { $match: { 
             _id: { $ne: new ObjectId(currentUserId) },
+            uid: { $nin: currentUser?.friends || [] }
         }},
-        // Sample random documents
-        { $sample: { size: limit * 2 } } // Sample more to filter down
     ];
 
     if (preference !== 'everyone') {
-        // Insert the gender match at the beginning of the pipeline for efficiency
-        pipeline.unshift({ $match: { gender: preference } });
+        pipeline.push({ $match: { gender: preference } });
     }
 
-    const randomUsers = await usersCollection.aggregate(pipeline).limit(limit).toArray();
+    // Add location-based sorting if the current user has a location
+    if (currentUser?.location) {
+        pipeline.unshift({
+            $geoNear: {
+                near: currentUser.location,
+                distanceField: "dist.calculated",
+                spherical: true
+            }
+        });
+    } else {
+        // If no location, fall back to random sampling
+        pipeline.push({ $sample: { size: limit } });
+    }
+    
+    pipeline.push({ $limit: limit });
+
+
+    const randomUsers = await usersCollection.aggregate(pipeline).toArray();
     
     return randomUsers.map(user => ({
         ...user,

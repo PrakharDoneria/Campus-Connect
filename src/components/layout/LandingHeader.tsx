@@ -64,8 +64,6 @@ function DesktopNavLinks() {
 
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
-    { href: '/doubts', icon: <HelpCircle />, text: 'Doubts' },
-    { href: '/assignments', icon: <FileText />, text: 'Assignments' },
     { href: '/nearby', icon: <Compass />, text: 'Discover' },
     { href: '/friends', icon: <Users />, text: 'Friends', badge: friendRequestCount },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
@@ -76,7 +74,7 @@ function DesktopNavLinks() {
       <form onSubmit={handleSearchSubmit} className="relative mr-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search users..."
+          placeholder="Search..."
           className="pl-9 w-48"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -163,6 +161,18 @@ export default function LandingHeader() {
                       <Link href="/profile">
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem asChild>
+                      <Link href="/doubts">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        <span>Ask a Doubt</span>
+                      </Link>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem asChild>
+                      <Link href="/assignments">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Share Assignment</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
