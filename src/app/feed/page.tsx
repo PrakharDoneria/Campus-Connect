@@ -20,6 +20,7 @@ import { DoubtCard } from '@/components/common/DoubtCard';
 import { UserCard } from '@/components/common/UserCard';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function SuggestionsCarousel({ users }: { users: IUser[] }) {
     if (users.length === 0) return null;
@@ -84,6 +85,7 @@ export default function FeedPage() {
   const [hasMoreItems, setHasMoreItems] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const isGuest = !user;
+  const isMobile = useIsMobile();
 
   const fetchFeed = useCallback(async (pageNum: number) => {
     setLoadingMore(true);
@@ -252,7 +254,7 @@ export default function FeedPage() {
     <div className="container mx-auto p-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {!isGuest && dbUser && (
+          {!isGuest && dbUser && !isMobile && (
             <CreatePostForm 
                 user={dbUser} 
                 circles={circles}
