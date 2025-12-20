@@ -4,6 +4,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useParams } from "next/navigation";
 
+// Note: Titles for dynamic chat pages are handled in the [id]/page.tsx file
+// as this layout is a client component.
+
 export default function MessagesLayout({
   children,
   list,

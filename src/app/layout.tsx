@@ -1,7 +1,6 @@
 
 'use client';
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { AppProvider } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
@@ -27,16 +26,12 @@ export default function RootLayout({
       });
     }
   }, []);
-  
-  const metadata: Metadata = {
-    title: 'Campus Connect',
-    description: 'A localized social network for college students.',
-  };
-
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Campus Connect</title>
+        <meta name="description" content="A localized social network for college students." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

@@ -45,6 +45,18 @@ export default function ChatPage() {
     }
   }, [conversationId, dbUser?.uid]);
 
+  useEffect(() => {
+    if (otherUser?.name) {
+      document.title = `Chat with ${otherUser.name} - Campus Connect`;
+    } else {
+      document.title = 'Messages - Campus Connect';
+    }
+    // Cleanup function to reset title
+    return () => {
+      document.title = 'Campus Connect';
+    };
+  }, [otherUser?.name]);
+
 
   useEffect(() => {
     if (authLoading) return; // Wait for auth to finish loading
