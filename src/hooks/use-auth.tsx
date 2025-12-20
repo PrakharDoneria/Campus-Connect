@@ -204,12 +204,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isSearchRoute = pathname === '/search';
 
     if (user) {
-      if (isProfileComplete === true) {
-        if (pathname === '/') {
-          router.push('/feed');
-        }
-      } else if (isProfileComplete === false && !isProfileEditRoute) {
+      if (isProfileComplete === false && !isProfileEditRoute) {
         router.push('/profile/edit');
+      } else if (isProfileComplete === true && pathname === '/') {
+        router.push('/feed');
       }
     } else {
       if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && !pathname.startsWith('/messages') && !isSearchRoute && pathname !== '/contribute') {
