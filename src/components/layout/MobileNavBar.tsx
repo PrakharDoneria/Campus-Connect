@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, LayoutGrid, MessageSquare, PlusSquare, User } from 'lucide-react';
+import { Compass, LayoutGrid, MessageSquare, Plus, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -13,13 +13,31 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CreatePostForm } from '../common/CreatePostForm';
+import type { ICircle } from '@/types';
+import { useEffect, useState } from 'react';
+import { getCircles } from '@/lib/actions/circle.actions';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function MobileNavBar() {
   const pathname = usePathname();
   const { dbUser, unreadMessagesCount } = useAuth();
+  const [circles, setCircles] = useState<ICircle[]>([]);
+  const { toast } = useToast();
 
-  // This should not happen, but as a fallback.
+  useEffect(() => {
+      async function fetchCircles() {
+          if (!dbUser) return;
+          try {
+              const fetchedCircles = await getCircles();
+              setCircles(fetchedCircles);
+          } catch (error) {
+              toast({ title: "Error", description: "Could not load circles for posting." });
+          }
+      }
+      fetchCircles();
+  }, [dbUser, toast]);
+
   if (!dbUser) return null;
 
   const navItems = [
@@ -28,6 +46,15 @@ export default function MobileNavBar() {
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
     { href: '/profile', icon: <User />, text: 'Profile' },
   ];
+  
+  const handlePostCreated = () => {
+    // Optionally close the dialog or refresh data
+  };
+
+  const handleCircleCreated = (newCircle: ICircle) => {
+    setCircles(prev => [...prev, newCircle]);
+  };
+
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t md:hidden">
@@ -49,22 +76,27 @@ export default function MobileNavBar() {
             )
         })}
 
-        <Dialog>
-            <DialogTrigger asChild>
-                 <button
-                    type="button"
-                    className="inline-flex flex-col items-center justify-center px-1 text-primary group"
-                >
-                    <div className="p-2 bg-primary text-primary-foreground rounded-full">
-                        <PlusSquare className="h-6 w-6" />
-                    </div>
-                </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                {/* We need to re-fetch circles here or pass them down, for now this will be limited */}
-                 <CreatePostForm user={dbUser} circles={[]} onPostCreated={() => {}} onCircleCreated={() => {}} />
-            </DialogContent>
-        </Dialog>
+        <div className="flex items-center justify-center">
+            <Dialog>
+                <DialogTrigger asChild>
+                    <button
+                        type="button"
+                        className="inline-flex items-center justify-center w-12 h-12 font-medium bg-primary text-primary-foreground rounded-full group"
+                    >
+                        <Plus className="w-6 h-6" />
+                        <span className="sr-only">New Post</span>
+                    </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                     <CreatePostForm 
+                        user={dbUser} 
+                        circles={circles} 
+                        onPostCreated={handlePostCreated} 
+                        onCircleCreated={handleCircleCreated} 
+                    />
+                </DialogContent>
+            </Dialog>
+        </div>
 
 
         {navItems.slice(2).map((item) => {
