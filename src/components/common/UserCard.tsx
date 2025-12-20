@@ -12,8 +12,9 @@ import { sendFriendRequest } from '@/lib/actions/user.actions';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
-export function UserCard({ user }: { user: IUser }) {
+export function UserCard({ user, variant = 'default' }: { user: IUser, variant?: 'default' | 'compact' }) {
   const { dbUser, loading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,7 +31,7 @@ export function UserCard({ user }: { user: IUser }) {
     try {
       await sendFriendRequest(dbUser.uid, user.uid);
       toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}.` });
-      router.refresh(); // Refresh the page to update the UI
+      router.refresh(); 
     } catch (error) {
       toast({ title: "Error", description: "Could not send friend request.", variant: "destructive" });
     } finally {
@@ -48,20 +49,35 @@ export function UserCard({ user }: { user: IUser }) {
 
   const renderFriendButton = () => {
     if (isSubmitting || loading) {
-      return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please wait</Button>;
+      return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Wait</Button>;
     }
 
     switch (friendStatus) {
       case 'friends':
         return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
       case 'sent':
-        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}>Request Sent</Button>;
+        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}>Sent</Button>;
       case 'received':
         return <Button size="sm" asChild className="flex-1" onClick={(e) => e.stopPropagation()}><Link href="/friends">Respond</Link></Button>;
       default:
-        return <Button size="sm" className="flex-1" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
+        return <Button size="sm" className="flex-1" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add</Button>;
     }
   };
+  
+  if (variant === 'compact') {
+    return (
+      <div className="flex flex-col items-center text-center p-2 h-full">
+         <Link href={`/profile/${user._id.toString()}`} className="w-full">
+            <Avatar className="w-20 h-20 mx-auto border-2 border-primary">
+              <AvatarImage src={user.photoUrl} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <h3 className="font-semibold text-sm mt-2 truncate w-full hover:underline">{user.name}</h3>
+          </Link>
+        <p className="text-xs text-muted-foreground truncate w-full">{user.major}</p>
+      </div>
+    )
+  }
 
   return (
     <Card className="flex flex-col items-center justify-center p-4 text-center h-full transition-all hover:shadow-lg hover:border-primary">
@@ -93,3 +109,5 @@ export function UserCard({ user }: { user: IUser }) {
     </Card>
   );
 }
+
+    

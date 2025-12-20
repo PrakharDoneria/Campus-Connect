@@ -18,6 +18,7 @@ import { Shimmer } from '@/components/common/Shimmer';
 import { AssignmentCard } from '@/components/common/AssignmentCard';
 import { DoubtCard } from '@/components/common/DoubtCard';
 import { UserCard } from '@/components/common/UserCard';
+import { SuggestionsCarousel } from '@/components/common/SuggestionsCarousel';
 
 
 export default function FeedPage() {
@@ -93,22 +94,6 @@ export default function FeedPage() {
     setPage(nextPage);
     fetchFeed(nextPage);
   };
-  
-  const interleavedFeed = useMemo(() => {
-    const combined: (FeedItem | {type: 'suggestion', user: IUser})[] = [...feedItems];
-    if (suggestedUsers.length > 0) {
-        // Intersperse suggested users, e.g., one every 4 items
-        for (let i = 0; i < suggestedUsers.length; i++) {
-            const insertionIndex = (i + 1) * 4;
-            if (insertionIndex < combined.length) {
-                combined.splice(insertionIndex, 0, { type: 'suggestion', user: suggestedUsers[i] });
-            } else {
-                 combined.push({ type: 'suggestion', user: suggestedUsers[i] });
-            }
-        }
-    }
-    return combined;
-  }, [feedItems, suggestedUsers]);
 
   const userJoinedCircles = useMemo(() => {
     if (!dbUser?.joinedCircles) return [];
@@ -137,18 +122,19 @@ export default function FeedPage() {
   }
 
   const handlePostUpdate = (updatedPost: IPost) => {
-    setFeedItems(prevItems => prevItems.map(p => p._id === updatedPost._id ? updatedPost : p));
-    setForYouItems(prevItems => prevItems.map(p => p._id === updatedPost._id ? updatedPost : p));
+    const updater = (p: FeedItem) => (p._id.toString() === updatedPost._id.toString() ? updatedPost : p);
+    setFeedItems(prevItems => prevItems.map(updater));
+    setForYouItems(prevItems => prevItems.map(updater));
   };
   
   const handlePostDelete = (postId: string) => {
-    setFeedItems(prevItems => prevItems.filter(p => p._id !== postId));
-    setForYouItems(prevItems => prevItems.filter(p => p._id !== postId));
+    const filterer = (p: FeedItem) => p._id.toString() !== postId;
+    setFeedItems(prevItems => prevItems.filter(filterer));
+    setForYouItems(prevItems => prevItems.filter(filterer));
   };
 
-  const renderItem = (item: FeedItem | {type: 'suggestion', user: IUser}) => {
-    // Backward compatibility for old posts without a 'type' field
-    const itemType = (item as FeedItem).type || ('content' in item ? 'post' : null);
+  const renderItem = (item: FeedItem) => {
+    const itemType = item.type || ('content' in item ? 'post' : null);
 
     switch (itemType) {
         case 'post':
@@ -163,15 +149,12 @@ export default function FeedPage() {
             return <AssignmentCard key={(item._id as string) + '-assignment'} assignment={item as IAssignment} />;
         case 'doubt':
             return <DoubtCard key={(item._id as string) + '-doubt'} doubt={item as IDoubt} />;
-        case 'suggestion':
-            const suggestion = item as {type: 'suggestion', user: IUser};
-            return <UserCard key={suggestion.user.uid + '-suggestion'} user={suggestion.user} />;
         default:
             return null;
     }
   }
 
-  const renderFeed = (itemsToRender: (FeedItem | {type: 'suggestion', user: IUser})[], emptyMessage: string, showPagination: boolean = false) => {
+  const renderFeed = (itemsToRender: FeedItem[], emptyMessage: string, showPagination: boolean = false) => {
     if (loading && itemsToRender.length === 0) {
       return (
         <div className="space-y-6">
@@ -226,7 +209,13 @@ export default function FeedPage() {
           <TabsTrigger value="your-circles" disabled={!dbUser}>Your Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone" className="mt-6">
-          {renderFeed(interleavedFeed, "It's awfully quiet in here... Be the first to post something!", true)}
+            {!isGuest && suggestedUsers.length > 0 && (
+                <div className='mb-6'>
+                    <h2 className="text-lg font-semibold mb-2">Suggested for you</h2>
+                    <SuggestionsCarousel users={suggestedUsers} />
+                </div>
+            )}
+          {renderFeed(feedItems, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
         <TabsContent value="for-you" className="mt-6">
            {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
@@ -272,3 +261,5 @@ export default function FeedPage() {
     </div>
   );
 }
+
+    
