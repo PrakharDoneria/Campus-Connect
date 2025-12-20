@@ -12,12 +12,13 @@ async function getDoubtsCollection(): Promise<Collection<Omit<IDoubt, '_id'>>> {
 }
 
 export async function createDoubt(
-    { title, description, subject }: { title: string; description: string; subject: string; },
+    { title, description, subject, circle }: { title: string; description: string; subject: string; circle: string; },
     user: IUser
 ): Promise<IDoubt> {
   const doubtsCollection = await getDoubtsCollection();
 
   const newDoubtData: Omit<IDoubt, '_id'> = {
+    type: 'doubt',
     author: {
       uid: user.uid,
       name: user.name,
@@ -27,6 +28,7 @@ export async function createDoubt(
     title,
     description,
     subject,
+    circle,
     createdAt: new Date(),
     answers: [],
   };

@@ -2,7 +2,7 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import { IPost, IUser } from '@/types';
+import { IPost, IUser, FeedItem } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 import { getUser } from './user.actions';
 import { sendPushNotification } from './notification.actions';
@@ -24,6 +24,7 @@ export async function createPost(content: string, circle: string, user: IUser): 
   const postsCollection = await getPostsCollection();
   
   const newPostData: Omit<IPost, '_id'> = {
+    type: 'post',
     author: {
       uid: user.uid,
       name: user.name,
@@ -54,16 +55,26 @@ export async function createPost(content: string, circle: string, user: IUser): 
   } as IPost;
 }
 
-export async function getPosts({ page = 1, limit = 10 }: { page?: number; limit?: number; } = {}): Promise<IPost[]> {
-    const postsCollection = await getPostsCollection();
+export async function getFeedItems({ page = 1, limit = 10 }: { page?: number; limit?: number; } = {}): Promise<FeedItem[]> {
+    const client = await clientPromise;
+    const db = client.db();
+    
     const skip = (page - 1) * limit;
-    const posts = await postsCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray();
 
-    // Convert _id to string for each post
-    return posts.map(post => ({
-        ...post,
-        _id: post._id.toString(),
-    })) as IPost[];
+    const pipeline = [
+        { $unionWith: { coll: 'assignments' } },
+        { $unionWith: { coll: 'doubts' } },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+    ];
+
+    const feedItems = await db.collection('posts').aggregate(pipeline).toArray();
+
+    return feedItems.map(item => ({
+        ...item,
+        _id: item._id.toString(),
+    })) as FeedItem[];
 }
 
 export async function getPostsByAuthor(authorUid: string): Promise<IPost[]> {

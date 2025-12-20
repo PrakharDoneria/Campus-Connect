@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { createDoubt, getDoubts } from '@/lib/actions/doubt.actions';
-import type { IDoubt } from '@/types';
+import { getCircles } from '@/lib/actions/circle.actions';
+import type { IDoubt, ICircle } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function DoubtCard({ doubt }: { doubt: IDoubt }) {
     return (
@@ -30,6 +32,10 @@ function DoubtCard({ doubt }: { doubt: IDoubt }) {
                         <h3 className="font-semibold text-lg">{doubt.title}</h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>by {doubt.author.name}</span>
+                            <span>•</span>
+                            <Link href={`/c/${doubt.circle}`} className="hover:underline">
+                                c/{doubt.circle}
+                            </Link>
                             <span>•</span>
                             <span>{formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
                         </div>
@@ -51,23 +57,30 @@ export default function DoubtsPage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [subject, setSubject] = useState('');
+    const [circle, setCircle] = useState('general');
+    const [circles, setCircles] = useState<ICircle[]>([]);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [doubts, setDoubts] = useState<IDoubt[]>([]);
     const [loadingDoubts, setLoadingDoubts] = useState(true);
 
     useEffect(() => {
-        async function fetchDoubts() {
+        async function fetchInitialData() {
             try {
                 setLoadingDoubts(true);
-                const fetchedDoubts = await getDoubts();
+                const [fetchedDoubts, fetchedCircles] = await Promise.all([
+                    getDoubts(),
+                    getCircles(),
+                ]);
                 setDoubts(fetchedDoubts);
+                setCircles(fetchedCircles);
             } catch (error) {
                 toast({ title: 'Error', description: 'Could not fetch doubts.', variant: 'destructive' });
             } finally {
                 setLoadingDoubts(false);
             }
         }
-        fetchDoubts();
+        fetchInitialData();
     }, [toast]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -76,18 +89,19 @@ export default function DoubtsPage() {
             toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
             return;
         }
-        if (!title.trim() || !description.trim() || !subject.trim()) {
+        if (!title.trim() || !description.trim() || !subject.trim() || !circle) {
             toast({ title: 'Error', description: 'All fields are required.', variant: 'destructive' });
             return;
         }
 
         setIsSubmitting(true);
         try {
-            const newDoubt = await createDoubt({ title, description, subject }, dbUser);
+            const newDoubt = await createDoubt({ title, description, subject, circle }, dbUser);
             setDoubts(prev => [newDoubt, ...prev]);
             setTitle('');
             setDescription('');
             setSubject('');
+            setCircle('general');
             toast({ title: 'Success', description: 'Your doubt has been posted.' });
         } catch (error: any) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -115,9 +129,24 @@ export default function DoubtsPage() {
                             <Label htmlFor="title">Title</Label>
                             <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., How does photosynthesis work?" />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="subject">Subject</Label>
-                            <Input id="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g., Biology" />
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="subject">Subject</Label>
+                                <Input id="subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g., Biology" />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="circle">Community Circle</Label>
+                                <Select onValueChange={setCircle} value={circle}>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Select a circle to post in" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {circles.map(c => (
+                                        <SelectItem key={c.name} value={c.name}>c/{c.name}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>

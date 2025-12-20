@@ -12,22 +12,26 @@ async function getAssignmentsCollection(): Promise<Collection<Omit<IAssignment, 
 }
 
 export async function createAssignment(
-    { title, description, subject, dueDate }: { title: string; description: string; subject: string; dueDate: Date },
+    data: { title: string; description: string; subject: string; dueDate: Date; circle: string; isPaid: boolean; reward?: string; },
     user: IUser
 ): Promise<IAssignment> {
   const assignmentsCollection = await getAssignmentsCollection();
 
   const newAssignmentData: Omit<IAssignment, '_id'> = {
+    type: 'assignment',
     author: {
       uid: user.uid,
       name: user.name,
       avatarUrl: user.photoUrl || '',
       university: user.university || 'N/A',
     },
-    title,
-    description,
-    subject,
-    dueDate,
+    title: data.title,
+    description: data.description,
+    subject: data.subject,
+    circle: data.circle,
+    dueDate: data.dueDate,
+    isPaid: data.isPaid,
+    reward: data.reward,
     createdAt: new Date(),
   };
 

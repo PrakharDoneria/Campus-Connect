@@ -32,6 +32,7 @@ export interface PostAuthor {
 
 export interface IPost {
     _id: string | ObjectId;
+    type: 'post';
     author: PostAuthor;
     content: string;
     circle: string; // Circle name
@@ -69,20 +70,28 @@ export interface IMessage {
 
 export interface IDoubt {
   _id: string | ObjectId;
+  type: 'doubt';
   author: PostAuthor;
   title: string;
   description: string;
   subject: string;
+  circle: string;
   createdAt: Date;
   answers: (string | ObjectId)[];
 }
 
 export interface IAssignment {
   _id: string | ObjectId;
+  type: 'assignment';
   author: PostAuthor;
   title: string;
   description: string;
   subject: string;
+  circle: string;
   dueDate: Date;
+  isPaid: boolean;
+  reward?: string;
   createdAt: Date;
 }
+
+export type FeedItem = IPost | IDoubt | IAssignment;
