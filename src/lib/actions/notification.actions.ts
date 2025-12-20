@@ -31,13 +31,18 @@ if (vapidPublicKey && vapidPrivateKey) {
 export async function sendPushNotification(payload: NotificationPayload): Promise<void> {
   const user = await getUser(payload.userId);
 
-  if (!user || !user.pushSubscription) {
-    console.log(`User ${payload.userId} not found or has no push subscription.`);
+  if (!user) {
+    console.log(`[Push Notification] User ${payload.userId} not found in database.`);
+    return;
+  }
+
+  if (!user.pushSubscription) {
+    console.log(`[Push Notification] User ${payload.userId} has not enabled push notifications. Subscription is missing.`);
     return;
   }
   
   if (!vapidPublicKey || !vapidPrivateKey) {
-      console.warn("VAPID keys not set, skipping push notification.");
+      console.warn("[Push Notification] VAPID keys not configured. Please run 'npx web-push generate-vapid-keys' and add them to your .env file.");
       return;
   }
 
@@ -54,11 +59,18 @@ export async function sendPushNotification(payload: NotificationPayload): Promis
 
   try {
     await webpush.sendNotification(subscription, notificationData);
+    console.log(`[Push Notification] Successfully sent notification to user ${payload.userId}: "${payload.title}"`);
   } catch (error: any) {
-    console.error('Error sending push notification:', error.statusCode, error.body);
+    console.error('[Push Notification] Error sending notification:', {
+      userId: payload.userId,
+      statusCode: error.statusCode,
+      message: error.message,
+      body: error.body
+    });
+    
     // If the subscription is gone or invalid (404 or 410), remove it from the database
     if (error.statusCode === 404 || error.statusCode === 410) {
-      console.log('Subscription is no longer valid. Removing from DB.');
+      console.log(`[Push Notification] Subscription expired for user ${payload.userId}. Removing from database.`);
       await updateUser(user.uid, { pushSubscription: undefined });
     }
   }
