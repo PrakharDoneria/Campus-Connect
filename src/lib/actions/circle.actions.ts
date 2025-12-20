@@ -2,8 +2,9 @@
 'use server';
 
 import clientPromise from '@/lib/mongodb';
-import { ICircle } from '@/types';
+import { ICircle, IUser } from '@/types';
 import { Collection } from 'mongodb';
+import { updateUser } from './user.actions';
 
 async function getCirclesCollection(): Promise<Collection<Omit<ICircle, '_id'>>> {
   const client = await clientPromise;
@@ -15,6 +16,12 @@ async function getCirclesCollection(): Promise<Collection<Omit<ICircle, '_id'>>>
       console.warn("Could not create unique index on circles collection name. This is expected if it already exists.");
   }
   return db.collection<Omit<ICircle, '_id'>>('circles');
+}
+
+async function getUsersCollection(): Promise<Collection<IUser>> {
+  const client = await clientPromise;
+  const db = client.db();
+  return db.collection<IUser>('users');
 }
 
 export async function createCircle(
@@ -41,6 +48,9 @@ export async function createCircle(
       throw new Error("Failed to create circle.");
   }
   
+  // Automatically make the creator join the circle
+  await joinCircle(creatorUid, newCircleData.name);
+
   const createdCircle = {
     ...newCircleData,
     _id: result.insertedId,
@@ -89,4 +99,21 @@ export async function getCircleByName(name: string): Promise<ICircle | null> {
     ...circle,
     _id: circle._id.toString(),
   } as ICircle;
+}
+
+
+export async function joinCircle(userUid: string, circleName: string): Promise<void> {
+    const usersCollection = await getUsersCollection();
+    await usersCollection.updateOne(
+        { uid: userUid },
+        { $addToSet: { joinedCircles: circleName } }
+    );
+}
+
+export async function leaveCircle(userUid: string, circleName: string): Promise<void> {
+    const usersCollection = await getUsersCollection();
+    await usersCollection.updateOne(
+        { uid: userUid },
+        { $pull: { joinedCircles: circleName } }
+    );
 }

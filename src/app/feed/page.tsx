@@ -8,7 +8,7 @@ import Link from 'next/link';
 import type { IPost, ICircle, FeedItem, IAssignment, IDoubt, IUser } from '@/types';
 import { GraduationCap, Search, Loader2 } from 'lucide-react';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { getFeedItems } from '@/lib/actions/post.actions';
+import { getFeedItems, getPostsForUserFeed } from '@/lib/actions/post.actions';
 import { getRandomUsers } from '@/lib/actions/user.actions';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { CreatePostForm } from '@/components/common/CreatePostForm';
@@ -23,6 +23,7 @@ import { UserCard } from '@/components/common/UserCard';
 export default function FeedPage() {
   const { user, dbUser } = useAuth();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [forYouItems, setForYouItems] = useState<FeedItem[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
   const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ export default function FeedPage() {
   const fetchFeed = useCallback(async (pageNum: number) => {
     setLoadingMore(true);
     try {
-        const newItems = await getFeedItems({ page: pageNum, limit: 5 });
+        const newItems = await getFeedItems({ page: pageNum, limit: 10 });
         if (newItems.length > 0) {
             setFeedItems(prev => pageNum === 1 ? newItems : [...prev, ...newItems]);
         } else {
@@ -47,35 +48,45 @@ export default function FeedPage() {
         setLoadingMore(false);
     }
   }, []);
+  
+  const fetchForYouFeed = useCallback(async () => {
+    if (!dbUser || !dbUser.joinedCircles || dbUser.joinedCircles.length === 0) {
+      setForYouItems([]);
+      return;
+    }
+    try {
+      const items = await getPostsForUserFeed(dbUser.joinedCircles);
+      setForYouItems(items);
+    } catch (error) {
+      console.error("Failed to fetch 'For You' feed:", error);
+    }
+  }, [dbUser]);
+
 
   useEffect(() => {
     async function fetchData() {
-      if (!dbUser) {
-        setLoading(false);
-        return;
+      setLoading(true);
+      const promises: Promise<any>[] = [
+        fetchFeed(1),
+        getCircles(),
+      ];
+
+      if (dbUser) {
+        promises.push(getRandomUsers({ currentUserId: dbUser._id.toString(), preference: 'everyone' }));
+        promises.push(fetchForYouFeed());
       }
-      try {
-        setLoading(true);
-        const [_, fetchedCircles, randomUsers] = await Promise.all([
-            fetchFeed(1),
-            getCircles(),
-            getRandomUsers({ currentUserId: dbUser._id.toString(), preference: 'everyone' })
-        ]);
-        setCircles(fetchedCircles);
-        setSuggestedUsers(randomUsers);
-      } catch (error) {
-        console.error("Failed to fetch initial data:", error);
-      } finally {
-        setLoading(false);
-      }
+      
+      const [_, fetchedCircles, randomUsers] = await Promise.all(promises);
+
+      if (fetchedCircles) setCircles(fetchedCircles);
+      if (randomUsers) setSuggestedUsers(randomUsers);
+
+      setLoading(false);
     }
-    if (dbUser) {
-        fetchData();
-    } else {
-        fetchFeed(1); // Fetch for guest
-    }
+    
+    fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dbUser]);
+  }, [dbUser, fetchForYouFeed]);
   
   const handleLoadMore = () => {
     const nextPage = page + 1;
@@ -99,26 +110,10 @@ export default function FeedPage() {
     return combined;
   }, [feedItems, suggestedUsers]);
 
-  const circlesWithUserActivity = useMemo(() => {
-    if (!dbUser) return [];
-    const createdCircleNames = circles.filter(c => c.creatorUid === dbUser.uid).map(c => c.name);
-    // Also include circles user has posted in
-    const postedInCircleNames = feedItems
-      .filter(p => p.type === 'post' && (p as IPost).author.uid === dbUser.uid)
-      .map(p => (p as IPost).circle);
-    const activityCircles = [...new Set([...createdCircleNames, ...postedInCircleNames])];
-    // Always include 'general' if it's not there and the user has some activity
-    if (activityCircles.length > 0 && !activityCircles.includes('general')) {
-      activityCircles.push('general');
-    }
-    return activityCircles;
-  }, [circles, feedItems, dbUser]);
-
-
-  const itemsInUserCircles = useMemo(() => {
-    if(circlesWithUserActivity.length === 0) return [];
-    return feedItems.filter(p => circlesWithUserActivity.includes(p.circle));
-  }, [feedItems, circlesWithUserActivity]);
+  const userJoinedCircles = useMemo(() => {
+    if (!dbUser?.joinedCircles) return [];
+    return circles.filter(c => dbUser.joinedCircles.includes(c.name));
+  }, [circles, dbUser]);
 
   const searchedCircleItems = useMemo(() => {
     if (!circleSearch.trim()) {
@@ -132,6 +127,9 @@ export default function FeedPage() {
 
   const handleItemCreated = (newItem: FeedItem) => {
     setFeedItems(prevItems => [newItem, ...prevItems]);
+    if (dbUser?.joinedCircles?.includes(newItem.circle)) {
+      setForYouItems(prev => [newItem, ...prev]);
+    }
   };
   
   const handleCircleCreated = (newCircle: ICircle) => {
@@ -140,10 +138,12 @@ export default function FeedPage() {
 
   const handlePostUpdate = (updatedPost: IPost) => {
     setFeedItems(prevItems => prevItems.map(p => p._id === updatedPost._id ? updatedPost : p));
+    setForYouItems(prevItems => prevItems.map(p => p._id === updatedPost._id ? updatedPost : p));
   };
   
   const handlePostDelete = (postId: string) => {
     setFeedItems(prevItems => prevItems.filter(p => p._id !== postId));
+    setForYouItems(prevItems => prevItems.filter(p => p._id !== postId));
   };
 
   const renderItem = (item: FeedItem | {type: 'suggestion', user: IUser}) => {
@@ -168,7 +168,7 @@ export default function FeedPage() {
   }
 
   const renderFeed = (itemsToRender: (FeedItem | {type: 'suggestion', user: IUser})[], emptyMessage: string, showPagination: boolean = false) => {
-    if (loading && feedItems.length === 0) {
+    if (loading && itemsToRender.length === 0) {
       return (
         <div className="space-y-6">
           <Shimmer className="h-48 w-full" />
@@ -210,7 +210,6 @@ export default function FeedPage() {
         <CreatePostForm 
             user={dbUser} 
             circles={circles}
-            userActivityCircles={circlesWithUserActivity}
             onPostCreated={handleItemCreated as (p: IPost) => void} 
             onCircleCreated={handleCircleCreated}
         />
@@ -219,27 +218,30 @@ export default function FeedPage() {
        <Tabs defaultValue="everyone" className="mt-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="everyone">Everyone</TabsTrigger>
-          <TabsTrigger value="your-circles">Your Circles</TabsTrigger>
-          <TabsTrigger value="circles">Search Circles</TabsTrigger>
+          <TabsTrigger value="for-you" disabled={!dbUser}>For You</TabsTrigger>
+          <TabsTrigger value="your-circles" disabled={!dbUser}>Your Circles</TabsTrigger>
         </TabsList>
         <TabsContent value="everyone" className="mt-6">
           {renderFeed(interleavedFeed, "It's awfully quiet in here... Be the first to post something!", true)}
         </TabsContent>
-        <TabsContent value="your-circles" className="mt-6">
-           {renderFeed(itemsInUserCircles, "Join a circle or create one to see your curated feed!")}
+        <TabsContent value="for-you" className="mt-6">
+           {renderFeed(forYouItems, "Join some circles to start building your personalized 'For You' feed!")}
         </TabsContent>
-        <TabsContent value="circles" className="mt-6">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Find a circle, like 'memes' or 'study_group'"
-                    value={circleSearch}
-                    onChange={(e) => setCircleSearch(e.target.value)}
-                    className="pl-10"
-                />
-            </div>
-           <div className="mt-6">
-                {renderFeed(searchedCircleItems, circleSearch.trim() ? "No posts found for this circle. Maybe create it?" : "Type a circle name to discover new communities.")}
+        <TabsContent value="your-circles" className="mt-6">
+            <div className="space-y-4">
+              {userJoinedCircles.length > 0 ? (
+                userJoinedCircles.map(circle => (
+                  <Link href={`/c/${circle.name}`} key={circle.name} className="block p-4 border rounded-lg hover:bg-muted">
+                    <h3 className="font-semibold">c/{circle.name}</h3>
+                    <p className="text-sm text-muted-foreground">{circle.description}</p>
+                  </Link>
+                ))
+              ) : (
+                 <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card">
+                    <p>You haven't joined any circles yet.</p>
+                    <Button asChild variant="link"><Link href="/feed">Explore Circles</Link></Button>
+                </div>
+              )}
             </div>
         </TabsContent>
       </Tabs>

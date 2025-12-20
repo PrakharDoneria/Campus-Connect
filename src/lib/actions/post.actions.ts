@@ -77,6 +77,37 @@ export async function getFeedItems({ page = 1, limit = 10 }: { page?: number; li
     })) as FeedItem[];
 }
 
+export async function getPostsForUserFeed(joinedCircles: string[]): Promise<FeedItem[]> {
+    if (!joinedCircles || joinedCircles.length === 0) {
+        return [];
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+
+    const pipeline = [
+        { $match: { circle: { $in: joinedCircles } } },
+        { $unionWith: { 
+            coll: 'assignments', 
+            pipeline: [ { $match: { circle: { $in: joinedCircles } } } ]
+        } },
+        { $unionWith: { 
+            coll: 'doubts',
+            pipeline: [ { $match: { circle: { $in: joinedCircles } } } ]
+        } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 50 } // Limit the "For You" feed size for performance
+    ];
+
+    const feedItems = await db.collection('posts').aggregate(pipeline).toArray();
+
+    return feedItems.map(item => ({
+        ...item,
+        _id: item._id.toString(),
+    })) as FeedItem[];
+}
+
+
 export async function getPostsByAuthor(authorUid: string): Promise<IPost[]> {
   const postsCollection = await getPostsCollection();
   const posts = await postsCollection.find({ 'author.uid': authorUid }).sort({ createdAt: -1 }).toArray();

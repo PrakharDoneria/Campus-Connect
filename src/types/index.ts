@@ -21,6 +21,7 @@ export interface IUser {
   friendRequestsReceived: string[]; // array of UIDs
   blockedUsers?: string[]; // array of UIDs
   pushSubscription?: PushSubscriptionJSON;
+  joinedCircles?: string[]; // array of circle names
 }
 
 export interface PostAuthor {

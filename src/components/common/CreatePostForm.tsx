@@ -33,12 +33,11 @@ import { createCircle } from '@/lib/actions/circle.actions';
 interface CreatePostFormProps {
   user: IUser;
   circles: ICircle[];
-  userActivityCircles: string[];
   onPostCreated: (newPost: IPost) => void;
   onCircleCreated: (newCircle: ICircle) => void;
 }
 
-export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated, userActivityCircles }: CreatePostFormProps) {
+export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated }: CreatePostFormProps) {
   const [content, setContent] = useState('');
   const [selectedCircle, setSelectedCircle] = useState<string>('general');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,8 +113,8 @@ export function CreatePostForm({ user, circles, onPostCreated, onCircleCreated, 
   };
   
   const suggestedCircles = useMemo(() => {
-    return circles.filter(c => userActivityCircles.includes(c.name));
-  }, [circles, userActivityCircles]);
+    return circles.filter(c => user.joinedCircles?.includes(c.name) || c.name === 'general');
+  }, [circles, user.joinedCircles]);
 
 
   return (
