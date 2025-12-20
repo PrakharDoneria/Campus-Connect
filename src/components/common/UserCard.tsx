@@ -66,16 +66,18 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
   
   if (variant === 'compact') {
     return (
-       <Card className="flex flex-col text-center p-4 transition-all hover:shadow-lg h-full">
-         <Link href={`/profile/${user._id.toString()}`} className="flex-grow">
+       <Card className="flex flex-col text-center p-4 transition-all hover:shadow-lg h-full overflow-hidden">
+         <Link href={`/profile/${user._id.toString()}`} className="flex-grow flex flex-col items-center">
             <Avatar className="w-20 h-20 mx-auto border-2 border-primary">
               <AvatarImage src={user.photoUrl} alt={user.name} />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <h3 className="font-semibold text-md mt-2 truncate w-full hover:underline">{user.name}</h3>
-            <p className="text-xs text-muted-foreground truncate w-full">{user.major}</p>
+            <div className="mt-2 w-full">
+              <h3 className="font-semibold text-md truncate w-full hover:underline">{user.name}</h3>
+              <p className="text-xs text-muted-foreground truncate w-full">{user.major}</p>
+            </div>
           </Link>
-          <div className="mt-4 w-full">
+          <div className="mt-4 w-full pt-4 border-t">
              {dbUser?.uid !== user.uid && renderFriendButton()}
           </div>
       </Card>
@@ -112,3 +114,5 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
     </Card>
   );
 }
+
+    

@@ -18,8 +18,30 @@ import { Shimmer } from '@/components/common/Shimmer';
 import { AssignmentCard } from '@/components/common/AssignmentCard';
 import { DoubtCard } from '@/components/common/DoubtCard';
 import { UserCard } from '@/components/common/UserCard';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 
-type FeedItemWithUser = FeedItem | { type: 'user_suggestion'; user: IUser };
+function SuggestionsCarousel({ users }: { users: IUser[] }) {
+    if (users.length === 0) return null;
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">People you may know</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Carousel opts={{ align: "start", loop: true }}>
+                    <CarouselContent>
+                        {users.map(user => (
+                            <CarouselItem key={user.uid} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/3">
+                                <UserCard user={user} variant="compact" />
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                </Carousel>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[], userCircles: string[] }) {
     const recommended = allCircles.filter(c => !userCircles.includes(c.name)).slice(0, 5);
@@ -27,8 +49,8 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
     if (recommended.length === 0) return null;
 
     return (
-        <div className="p-4 rounded-lg bg-card border my-6">
-            <h3 className="font-bold text-lg mb-2">Recommended Circles</h3>
+        <div className="p-4 rounded-lg bg-card border sticky top-20">
+            <h3 className="font-bold text-lg mb-4">Recommended Circles</h3>
             <div className="space-y-2">
                 {recommended.map(circle => (
                      <Link href={`/c/${circle.name}`} key={circle.name} className="block p-3 border rounded-lg hover:bg-muted transition-colors">
@@ -37,7 +59,7 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
                                 <p className="font-semibold">c/{circle.name}</p>
                                 <p className="text-sm text-muted-foreground line-clamp-1">{circle.description}</p>
                             </div>
-                            <Button variant="outline" size="sm" onClick={e => { e.preventDefault(); e.stopPropagation(); router.push(`/c/${circle.name}`) }}>
+                            <Button variant="outline" size="sm">
                                 View
                             </Button>
                         </div>
@@ -47,7 +69,6 @@ function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[]
         </div>
     );
 }
-
 
 export default function FeedPage() {
   const { user, dbUser } = useAuth();
@@ -122,17 +143,14 @@ export default function FeedPage() {
     fetchFeed(nextPage);
   };
   
-    const interleavedFeedItems = useMemo(() => {
-    const result: FeedItemWithUser[] = [...feedItems];
+  const interleavedFeedItems = useMemo(() => {
+    const result: (FeedItem | { type: 'suggestions_carousel' })[] = [...feedItems];
     if (suggestedUsers.length > 0) {
-      for (let i = 0; i < suggestedUsers.length; i++) {
-        const user = suggestedUsers[i];
-        const position = (i + 1) * 4; // Insert a user card after every 3 content items
-        if (position <= result.length) {
-          result.splice(position, 0, { type: 'user_suggestion', user });
-        } else {
-           result.push({ type: 'user_suggestion', user });
-        }
+      const position = 2; // Insert after the 2nd post
+      if (result.length > position) {
+        result.splice(position, 0, { type: 'suggestions_carousel' });
+      } else {
+        result.push({ type: 'suggestions_carousel' });
       }
     }
     return result;
@@ -167,9 +185,9 @@ export default function FeedPage() {
     setForYouItems(prevItems => prevItems.filter(filterer));
   };
 
-  const renderItem = (item: FeedItemWithUser, index: number) => {
-    if (item.type === 'user_suggestion') {
-       return <UserCard key={item.user.uid} user={item.user} variant="compact" />;
+  const renderItem = (item: FeedItem | { type: 'suggestions_carousel' }, index: number) => {
+    if (item.type === 'suggestions_carousel') {
+       return <SuggestionsCarousel key="suggestions" users={suggestedUsers} />;
     }
     
     const itemType = item.type || ('content' in item ? 'post' : null);
@@ -192,7 +210,7 @@ export default function FeedPage() {
     }
   }
 
-  const renderFeed = (itemsToRender: FeedItemWithUser[], emptyMessage: string, showPagination: boolean = false) => {
+  const renderFeed = (itemsToRender: (FeedItem | { type: 'suggestions_carousel' })[], emptyMessage: string, showPagination: boolean = false) => {
     if (loading && itemsToRender.length === 0) {
       return (
         <div className="space-y-6">
@@ -227,78 +245,87 @@ export default function FeedPage() {
     )
   };
 
-
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      
-      {!isGuest && dbUser && (
-        <CreatePostForm 
-            user={dbUser} 
-            circles={circles}
-            onPostCreated={handleItemCreated as (p: IPost) => void} 
-            onCircleCreated={handleCircleCreated}
-        />
-      )}
-      
-       <Tabs defaultValue="everyone" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="everyone">Everyone</TabsTrigger>
-          <TabsTrigger value="for-you" disabled={!dbUser}>For You</TabsTrigger>
-          <TabsTrigger value="your-circles" disabled={!dbUser}>Your Circles</TabsTrigger>
-        </TabsList>
-        <TabsContent value="everyone" className="mt-6">
-          {renderFeed(interleavedFeedItems, "It's awfully quiet in here... Be the first to post something!", true)}
-          {!isGuest && dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
-        </TabsContent>
-        <TabsContent value="for-you" className="mt-6">
-           {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
-             renderFeed(forYouItems, "No new posts from your circles.")
-           ) : (
-             <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card mt-6">
-              <p>Join some circles to start building your personalized 'For You' feed!</p>
-              <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
-            </div>
-           )}
-        </TabsContent>
-        <TabsContent value="your-circles" className="mt-6">
-            <div className="space-y-4">
-              {userJoinedCircles.length > 0 ? (
-                userJoinedCircles.map(circle => (
-                  <Link href={`/c/${circle.name}`} key={circle.name} className="block p-4 border rounded-lg hover:bg-muted">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h3 className="font-semibold">c/{circle.name}</h3>
-                            <p className="text-sm text-muted-foreground">{circle.description}</p>
-                        </div>
-                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            <span>{circle.memberCount || 0}</span>
-                        </div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                 <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card">
-                    <p>You haven't joined any circles yet.</p>
-                    <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
+    <div className="container mx-auto p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          {!isGuest && dbUser && (
+            <CreatePostForm 
+                user={dbUser} 
+                circles={circles}
+                onPostCreated={handleItemCreated as (p: IPost) => void} 
+                onCircleCreated={handleCircleCreated}
+            />
+          )}
+          
+           <Tabs defaultValue="everyone" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="everyone">Everyone</TabsTrigger>
+              <TabsTrigger value="for-you" disabled={!dbUser}>For You</TabsTrigger>
+            </TabsList>
+            <TabsContent value="everyone" className="mt-6">
+              {renderFeed(interleavedFeedItems, "It's awfully quiet in here... Be the first to post something!", true)}
+            </TabsContent>
+            <TabsContent value="for-you" className="mt-6">
+               {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
+                 renderFeed(forYouItems, "No new posts from your circles.")
+               ) : (
+                 <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card mt-6">
+                  <p>Join some circles to start building your personalized 'For You' feed!</p>
+                  <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
                 </div>
-              )}
-            </div>
-        </TabsContent>
-      </Tabs>
+               )}
+            </TabsContent>
+          </Tabs>
 
-       {isGuest && !loading && (
-        <div className="text-center py-10 mt-6 bg-card rounded-lg shadow-md">
-          <GraduationCap className="h-12 w-12 text-primary mx-auto mb-4" />
-          <h2 className="text-2xl font-bold">You're viewing as a guest</h2>
-          <p className="text-muted-foreground mt-2 mb-6">
-            Looks like you're on the outside looking in. Log in to join the party!
-          </p>
-          <Button asChild>
-            <Link href="/">Login or Sign Up</Link>
-          </Button>
+           {isGuest && !loading && (
+            <div className="text-center py-10 mt-6 bg-card rounded-lg shadow-md">
+              <GraduationCap className="h-12 w-12 text-primary mx-auto mb-4" />
+              <h2 className="text-2xl font-bold">You're viewing as a guest</h2>
+              <p className="text-muted-foreground mt-2 mb-6">
+                Looks like you're on the outside looking in. Log in to join the party!
+              </p>
+              <Button asChild>
+                <Link href="/">Login or Sign Up</Link>
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        <aside className="hidden lg:block lg:col-span-1">
+          {dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
+           <Card className="mt-8">
+              <CardHeader><CardTitle>Your Circles</CardTitle></CardHeader>
+              <CardContent>
+                 <div className="space-y-4">
+                  {userJoinedCircles.length > 0 ? (
+                    userJoinedCircles.map(circle => (
+                      <Link href={`/c/${circle.name}`} key={circle.name} className="block p-4 border rounded-lg hover:bg-muted">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="font-semibold">c/{circle.name}</h3>
+                                <p className="text-sm text-muted-foreground">{circle.description}</p>
+                            </div>
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>{circle.memberCount || 0}</span>
+                            </div>
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                     <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card">
+                        <p>You haven't joined any circles yet.</p>
+                        <Button asChild variant="link"><Link href="/search?q=">Explore Circles</Link></Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+           </Card>
+        </aside>
+      </div>
     </div>
   );
 }
+
+    
