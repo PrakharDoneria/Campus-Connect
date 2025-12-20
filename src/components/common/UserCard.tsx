@@ -49,33 +49,36 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
 
   const renderFriendButton = () => {
     if (isSubmitting || loading) {
-      return <Button size="sm" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Wait</Button>;
+      return <Button size="sm" className="w-full" disabled onClick={(e) => e.stopPropagation()}><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Wait</Button>;
     }
 
     switch (friendStatus) {
       case 'friends':
-        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
+        return <Button size="sm" variant="secondary" className="w-full" disabled onClick={(e) => e.stopPropagation()}><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
       case 'sent':
-        return <Button size="sm" variant="secondary" className="flex-1" disabled onClick={(e) => e.stopPropagation()}>Sent</Button>;
+        return <Button size="sm" variant="secondary" className="w-full" disabled onClick={(e) => e.stopPropagation()}>Request Sent</Button>;
       case 'received':
-        return <Button size="sm" asChild className="flex-1" onClick={(e) => e.stopPropagation()}><Link href="/friends">Respond</Link></Button>;
+        return <Button size="sm" asChild className="w-full" onClick={(e) => e.stopPropagation()}><Link href="/friends">Respond</Link></Button>;
       default:
-        return <Button size="sm" className="flex-1" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add</Button>;
+        return <Button size="sm" className="w-full" onClick={handleAddFriend}><UserPlus className="mr-2 h-4 w-4" /> Add Friend</Button>;
     }
   };
   
   if (variant === 'compact') {
     return (
-      <div className="flex flex-col items-center text-center p-2 h-full">
-         <Link href={`/profile/${user._id.toString()}`} className="w-full">
+       <Card className="flex flex-col text-center p-4 transition-all hover:shadow-lg h-full">
+         <Link href={`/profile/${user._id.toString()}`} className="flex-grow">
             <Avatar className="w-20 h-20 mx-auto border-2 border-primary">
               <AvatarImage src={user.photoUrl} alt={user.name} />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <h3 className="font-semibold text-sm mt-2 truncate w-full hover:underline">{user.name}</h3>
+            <h3 className="font-semibold text-md mt-2 truncate w-full hover:underline">{user.name}</h3>
+            <p className="text-xs text-muted-foreground truncate w-full">{user.major}</p>
           </Link>
-        <p className="text-xs text-muted-foreground truncate w-full">{user.major}</p>
-      </div>
+          <div className="mt-4 w-full">
+             {dbUser?.uid !== user.uid && renderFriendButton()}
+          </div>
+      </Card>
     )
   }
 
@@ -109,5 +112,3 @@ export function UserCard({ user, variant = 'default' }: { user: IUser, variant?:
     </Card>
   );
 }
-
-    

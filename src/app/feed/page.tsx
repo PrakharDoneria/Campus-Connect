@@ -6,7 +6,7 @@ import { PostCard } from '@/components/common/PostCard';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { IPost, ICircle, FeedItem, IAssignment, IDoubt, IUser } from '@/types';
-import { GraduationCap, Search, Loader2 } from 'lucide-react';
+import { GraduationCap, Search, Loader2, Users } from 'lucide-react';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getFeedItems, getPostsForUserFeed } from '@/lib/actions/post.actions';
 import { getRandomUsers } from '@/lib/actions/user.actions';
@@ -21,6 +21,33 @@ import { UserCard } from '@/components/common/UserCard';
 
 type FeedItemWithUser = FeedItem | { type: 'user_suggestion'; user: IUser };
 
+function RecommendedCircles({ allCircles, userCircles }: { allCircles: ICircle[], userCircles: string[] }) {
+    const recommended = allCircles.filter(c => !userCircles.includes(c.name)).slice(0, 5);
+    
+    if (recommended.length === 0) return null;
+
+    return (
+        <div className="p-4 rounded-lg bg-card border my-6">
+            <h3 className="font-bold text-lg mb-2">Recommended Circles</h3>
+            <div className="space-y-2">
+                {recommended.map(circle => (
+                     <Link href={`/c/${circle.name}`} key={circle.name} className="block p-3 border rounded-lg hover:bg-muted transition-colors">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <p className="font-semibold">c/{circle.name}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-1">{circle.description}</p>
+                            </div>
+                            <Button variant="outline" size="sm" asChild onClick={e => e.stopPropagation()}>
+                                <Link href={`/c/${circle.name}`}>View</Link>
+                            </Button>
+                        </div>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 
 export default function FeedPage() {
   const { user, dbUser } = useAuth();
@@ -29,7 +56,6 @@ export default function FeedPage() {
   const [suggestedUsers, setSuggestedUsers] = useState<IUser[]>([]);
   const [circles, setCircles] = useState<ICircle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [circleSearch, setCircleSearch] = useState('');
   const [page, setPage] = useState(1);
   const [hasMoreItems, setHasMoreItems] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -118,16 +144,6 @@ export default function FeedPage() {
     return circles.filter(c => dbUser.joinedCircles.includes(c.name));
   }, [circles, dbUser]);
 
-  const searchedCircleItems = useMemo(() => {
-    if (!circleSearch.trim()) {
-        return [];
-    }
-    const searchLower = circleSearch.toLowerCase();
-    // Filter posts, assignments, doubts by circle name
-    return feedItems.filter(item => item.circle.toLowerCase().includes(searchLower));
-  }, [feedItems, circleSearch]);
-
-
   const handleItemCreated = (newItem: FeedItem) => {
     setFeedItems(prevItems => [newItem, ...prevItems]);
     if (dbUser?.joinedCircles?.includes(newItem.circle)) {
@@ -189,7 +205,7 @@ export default function FeedPage() {
     
     const limitedItems = isGuest ? itemsToRender.slice(0, 4) : itemsToRender;
 
-    if (limitedItems.length === 0) {
+    if (limitedItems.length === 0 && !loadingMore) {
       return (
         <div className="text-center py-10 text-muted-foreground border rounded-lg bg-card mt-6">
           <p>{emptyMessage}</p>
@@ -232,6 +248,7 @@ export default function FeedPage() {
         </TabsList>
         <TabsContent value="everyone" className="mt-6">
           {renderFeed(interleavedFeedItems, "It's awfully quiet in here... Be the first to post something!", true)}
+          {!isGuest && dbUser && <RecommendedCircles allCircles={circles} userCircles={dbUser?.joinedCircles || []} />}
         </TabsContent>
         <TabsContent value="for-you" className="mt-6">
            {dbUser && dbUser.joinedCircles && dbUser.joinedCircles.length > 0 ? (
@@ -248,8 +265,16 @@ export default function FeedPage() {
               {userJoinedCircles.length > 0 ? (
                 userJoinedCircles.map(circle => (
                   <Link href={`/c/${circle.name}`} key={circle.name} className="block p-4 border rounded-lg hover:bg-muted">
-                    <h3 className="font-semibold">c/{circle.name}</h3>
-                    <p className="text-sm text-muted-foreground">{circle.description}</p>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="font-semibold">c/{circle.name}</h3>
+                            <p className="text-sm text-muted-foreground">{circle.description}</p>
+                        </div>
+                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span>{circle.memberCount || 0}</span>
+                        </div>
+                    </div>
                   </Link>
                 ))
               ) : (

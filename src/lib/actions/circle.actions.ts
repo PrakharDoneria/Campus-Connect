@@ -36,14 +36,14 @@ export async function createCircle(
     throw new Error(`Circle "c/${name}" already exists.`);
   }
 
-  const newCircleData: Omit<ICircle, '_id'> = {
+  const newCircleData: Omit<ICircle, '_id' | 'memberCount'> = {
     name: name.toLowerCase(),
     description,
     creatorUid,
     createdAt: new Date(),
   };
 
-  const result = await circlesCollection.insertOne(newCircleData);
+  const result = await circlesCollection.insertOne(newCircleData as any);
   
   if (!result.insertedId) {
       throw new Error("Failed to create circle.");
@@ -55,6 +55,7 @@ export async function createCircle(
   const createdCircle = {
     ...newCircleData,
     _id: result.insertedId,
+    memberCount: 1,
   };
 
   return {
@@ -65,26 +66,32 @@ export async function createCircle(
 
 export async function getCircles(): Promise<ICircle[]> {
     const circlesCollection = await getCirclesCollection();
-    const circles = await circlesCollection.find({}).sort({ createdAt: -1 }).toArray();
+    const usersCollection = await getUsersCollection();
+    
+    let circles = await circlesCollection.find({}).sort({ createdAt: -1 }).toArray();
 
     // Create a default 'general' circle if none exist
     if (circles.length === 0) {
         try {
-            const generalCircle = await createCircle({ name: 'general', description: 'A place for everything.' }, 'system');
-            return [generalCircle];
+            await createCircle({ name: 'general', description: 'A place for everything.' }, 'system');
+            circles = await circlesCollection.find({}).sort({ createdAt: -1 }).toArray();
         } catch (error) {
-            // It might fail if another process creates it at the same time
-            const generalCircle = await circlesCollection.findOne({ name: 'general' });
-            if (generalCircle) {
-                 return [{...generalCircle, _id: generalCircle._id.toString()}] as ICircle[];
-            }
-            return [];
+            console.warn("Could not create 'general' circle, it might already exist.", error);
+            circles = await circlesCollection.find({}).sort({ createdAt: -1 }).toArray();
         }
     }
+
+    const circleMemberCounts = await usersCollection.aggregate([
+        { $unwind: "$joinedCircles" },
+        { $group: { _id: "$joinedCircles", memberCount: { $sum: 1 } } }
+    ]).toArray();
+
+    const countsMap = new Map(circleMemberCounts.map(c => [c._id, c.memberCount]));
 
     return circles.map(circle => ({
         ...circle,
         _id: circle._id.toString(),
+        memberCount: countsMap.get(circle.name) || 0,
     })) as ICircle[];
 }
 
@@ -95,10 +102,14 @@ export async function getCircleByName(name: string): Promise<ICircle | null> {
   if (!circle) {
     return null;
   }
+  
+  const usersCollection = await getUsersCollection();
+  const memberCount = await usersCollection.countDocuments({ joinedCircles: name });
 
   return {
     ...circle,
     _id: circle._id.toString(),
+    memberCount
   } as ICircle;
 }
 
@@ -132,5 +143,12 @@ export async function searchCircles(query: string): Promise<ICircle[]> {
   return circles.map(circle => ({
     ...circle,
     _id: circle._id.toString(),
+    memberCount: 0, // Member count not calculated in search for performance
   })) as ICircle[];
+}
+
+export async function getCircleMembers(circleName: string): Promise<IUser[]> {
+    const usersCollection = await getUsersCollection();
+    const members = await usersCollection.find({ joinedCircles: circleName }).toArray();
+    return members.map(m => ({ ...m, _id: m._id.toString() })) as IUser[];
 }

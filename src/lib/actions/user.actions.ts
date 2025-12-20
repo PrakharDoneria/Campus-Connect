@@ -4,6 +4,7 @@
 import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser, Gender } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
+import { joinCircle } from './circle.actions';
 
 async function getDb() {
     const client = await clientPromise;
@@ -81,6 +82,7 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
     friendRequestsSent: [],
     friendRequestsReceived: [],
     blockedUsers: [],
+    joinedCircles: ['general'], // Automatically join 'general'
     ...user,
   };
 
@@ -89,6 +91,7 @@ export async function createUser(user: Partial<IUser>): Promise<IUser> {
   if (!newUser) {
     throw new Error('Failed to create user.');
   }
+  
   return { ...newUser, _id: newUser._id.toString() } as unknown as IUser;
 }
 
