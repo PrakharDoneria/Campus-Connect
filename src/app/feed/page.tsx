@@ -153,7 +153,7 @@ export default function FeedPage() {
 
   const renderItem = (item: FeedItemWithUser, index: number) => {
     if (item.type === 'user_suggestion') {
-       return <UserCard key={item.user.uid} user={item.user} />;
+       return <UserCard key={item.user.uid} user={item.user} variant="compact" />;
     }
     
     const itemType = item.type || ('content' in item ? 'post' : null);
