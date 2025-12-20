@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Compass, LayoutGrid, MessageSquare, Plus, User, Search } from 'lucide-react';
+import { Compass, LayoutGrid, MessageSquare, Plus, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -11,24 +11,20 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog"
 import { CreatePostForm } from '../common/CreatePostForm';
 import type { ICircle } from '@/types';
 import { useEffect, useState } from 'react';
 import { getCircles } from '@/lib/actions/circle.actions';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 
 export default function MobileNavBar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { dbUser, unreadMessagesCount } = useAuth();
   const [circles, setCircles] = useState<ICircle[]>([]);
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
 
   useEffect(() => {
       async function fetchCircles() {
@@ -45,24 +41,16 @@ export default function MobileNavBar() {
 
   if (!dbUser) return null;
   
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchQuery('');
-    setIsSearchOpen(false);
-  };
-
   const navItems = [
     { href: '/feed', icon: <LayoutGrid />, text: 'Feed' },
     { href: '/nearby', icon: <Compass />, text: 'Discover' },
-    { type: 'search', icon: <Search />, text: 'Search' },
+    { type: 'create', icon: <Plus className="h-6 w-6" />, text: 'Post' },
     { href: '/messages', icon: <MessageSquare />, text: 'Messages', badge: unreadMessagesCount },
     { href: '/profile', icon: <User />, text: 'Profile' },
   ];
   
   const handlePostCreated = () => {
-    // Optionally close the dialog or refresh data
+    setIsPostDialogOpen(false);
   };
 
   const handleCircleCreated = (newCircle: ICircle) => {
@@ -71,35 +59,34 @@ export default function MobileNavBar() {
 
 
   return (
-    <>
       <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t md:hidden">
         <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
-          {navItems.map((item, index) => {
-              if (item.type === 'search') {
+          {navItems.map((item) => {
+              if (item.type === 'create') {
                 return (
-                   <Dialog key="search-dialog" open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+                  <Dialog key="create-post" open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen}>
                     <DialogTrigger asChild>
-                      <button className={cn("inline-flex flex-col items-center justify-center px-1 hover:bg-muted group text-muted-foreground")}>
-                          <div className="relative">{item.icon}</div>
-                          <span className={cn("text-xs font-normal")}>{item.text}</span>
-                      </button>
+                      <Button
+                        variant="ghost"
+                        className="inline-flex flex-col items-center justify-center px-1 h-full hover:bg-muted group text-muted-foreground"
+                      >
+                        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground group-hover:bg-primary/90">
+                           {item.icon}
+                        </div>
+                      </Button>
                     </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Search Campus Connect</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                            <Input 
-                                placeholder="Search users and circles..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </form>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <CreatePostForm 
+                        user={dbUser} 
+                        circles={circles} 
+                        onPostCreated={handlePostCreated} 
+                        onCircleCreated={handleCircleCreated} 
+                      />
                     </DialogContent>
                   </Dialog>
                 )
               }
-              const isActive = pathname.startsWith(item.href!);
+              const isActive = pathname === item.href;
               return (
                   <Link
                       key={item.href}
@@ -121,27 +108,5 @@ export default function MobileNavBar() {
           })}
         </div>
       </div>
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 md:hidden">
-         <Dialog>
-              <DialogTrigger asChild>
-                  <button
-                      type="button"
-                      className="inline-flex items-center justify-center w-14 h-14 font-medium bg-primary text-primary-foreground rounded-full group shadow-lg"
-                  >
-                      <Plus className="w-6 h-6" />
-                      <span className="sr-only">New Post</span>
-                  </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                    <CreatePostForm 
-                      user={dbUser} 
-                      circles={circles} 
-                      onPostCreated={handlePostCreated} 
-                      onCircleCreated={handleCircleCreated} 
-                  />
-              </DialogContent>
-          </Dialog>
-      </div>
-    </>
   );
 }

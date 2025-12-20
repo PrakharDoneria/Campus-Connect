@@ -34,6 +34,13 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -122,6 +129,42 @@ function DesktopNavLinks() {
   );
 }
 
+function MobileSearch() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    setSearchQuery('');
+    setIsSearchOpen(false);
+  };
+
+  return (
+    <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Search />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Search Campus Connect</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <Input 
+            placeholder="Search users and circles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ThemeToggleButton() {
     const { setTheme, theme } = useTheme();
     return (
@@ -149,9 +192,12 @@ export default function LandingHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <div className="w-6 h-6" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {isMobile && dbUser && <MobileSearch />}
+          <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+            <div className="w-6 h-6" />
+          </Link>
+        </div>
         <div className="flex items-center gap-4">
           {!loading &&
             (user && dbUser ? (
