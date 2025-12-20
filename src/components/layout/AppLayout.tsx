@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { usePathname } from 'next/navigation';
 import { NotificationPermissionPrompt } from '../common/NotificationPermissionPrompt';
 import { useEffect } from 'react';
+import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
 
 const noNavRoutes = ['/'];
 
@@ -41,6 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </main>
       {showMobileNav && <MobileNavBar />}
       {dbUser && <NotificationPermissionPrompt />}
+      <InstallPwaPrompt />
     </div>
   );
 }
