@@ -4,14 +4,6 @@
 import ListPage from './@list/page';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MessagesDefaultPage from './default';
-import type { Metadata } from 'next';
-
-// Note: Titles for dynamic chat pages are handled in the [id]/page.tsx file.
-export const metadata: Metadata = {
-  title: 'Messages - Campus Connect',
-  description: 'Your private conversations with other students. Chat in real-time and start video calls.',
-};
-
 
 export default function MessagesPage() {
     const isMobile = useIsMobile();
