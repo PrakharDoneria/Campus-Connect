@@ -22,6 +22,7 @@ export interface IUser {
   blockedUsers?: string[]; // array of UIDs
   pushSubscription?: PushSubscriptionJSON;
   joinedCircles: string[]; // array of circle names
+  universityCircle?: string; // name of the main university circle
 }
 
 export interface PostAuthor {

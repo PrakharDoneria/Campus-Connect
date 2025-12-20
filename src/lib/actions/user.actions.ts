@@ -31,6 +31,11 @@ async function getUsersCollection(): Promise<Collection<IUser>> {
   } catch(e) {
        console.warn("Could not create text index on users collection name. This is expected if it already exists.");
   }
+   try {
+      await db.collection<IUser>('users').createIndex({ university: 1 });
+  } catch(e) {
+      console.warn("Could not create index on university. This is expected if it already exists.");
+  }
   return db.collection<IUser>('users');
 }
 
@@ -171,7 +176,7 @@ export async function getRandomUsers({
         // Exclude the current user, their friends, and any users they have blocked or have blocked them
         { $match: { 
             _id: { $ne: new ObjectId(currentUserId) },
-            uid: { $nin: currentUser?.friends || [] }
+            uid: { $nin: [...(currentUser?.friends || []), ...(currentUser?.friendRequestsSent || [])] }
         }},
     ];
 

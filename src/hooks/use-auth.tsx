@@ -24,6 +24,7 @@ interface AuthContextType {
   requestNotificationPermission: () => void;
   unreadMessagesCount: number;
   friendRequestCount: number;
+  refreshDbUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   requestNotificationPermission: () => {},
   unreadMessagesCount: 0,
   friendRequestCount: 0,
+  refreshDbUser: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -69,12 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 friendRequestsSent: [],
                 friendRequestsReceived: [],
                 blockedUsers: [],
+                joinedCircles: ['general'],
             } as Partial<IUser>;
             mongoUser = await createUser(newUser);
         }
         setDbUser(mongoUser);
         setFriendRequestCount(mongoUser.friendRequestsReceived?.length || 0);
-        const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender);
+        const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender && mongoUser.universityCircle);
         setIsProfileComplete(profileComplete);
 
       } catch (error) {
@@ -90,79 +93,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  const refreshDbUser = useCallback(async () => {
+    if (user) {
+        const mongoUser = await getUser(user.uid);
+        if (mongoUser) {
+            setDbUser(mongoUser);
+             const profileComplete = !!(mongoUser?.university && mongoUser.major && mongoUser.location && mongoUser.gender && mongoUser.universityCircle);
+            setIsProfileComplete(profileComplete);
+        }
+    }
+  }, [user]);
+
   const requestNotificationPermission = useCallback(async () => {
     if (!("Notification" in window) || !("serviceWorker" in navigator) || !dbUser) {
-      console.warn('[Notifications] Push notifications are not supported or user not logged in.');
       toast({
         title: "Unsupported",
-        description: "Push notifications are not supported in this browser or you're not logged in.",
+        description: "Push notifications are not supported or you're not logged in.",
         variant: "destructive",
       });
       return;
     }
   
     if (Notification.permission === 'granted') {
-      console.log('[Notifications] Notification permission already granted.');
       toast({ title: "Already Enabled", description: "You've already enabled notifications." });
       return;
     }
   
     if (Notification.permission === 'denied') {
-      console.warn('[Notifications] Notification permission was denied by user.');
       toast({
         title: "Permission Denied",
-        description: "You have blocked notifications. Please enable them in your browser settings.",
+        description: "Please enable notifications in your browser settings.",
         variant: "destructive",
       });
       return;
     }
   
     try {
-      console.log('[Notifications] Requesting notification permission...');
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        throw new Error('Notification permission not granted.');
-      }
+      if (permission !== 'granted') throw new Error('Permission not granted.');
       
-      console.log('[Notifications] Permission granted. Waiting for service worker...');
       const serviceWorkerRegistration = await navigator.serviceWorker.ready;
       
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      if (!vapidKey) {
-        throw new Error('VAPID key is not defined. Please check your environment configuration.');
-      }
+      if (!vapidKey) throw new Error('VAPID key not defined.');
       
-      console.log('[Notifications] Subscribing to push notifications...');
       const applicationServerKey = urlBase64ToUint8Array(vapidKey);
       const subscription = await serviceWorkerRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,
       });
   
-      console.log('[Notifications] Subscription successful. Saving to database...');
       await updateUser(dbUser.uid, { pushSubscription: subscription.toJSON() });
       
-      console.log('[Notifications] Push notification setup complete!');
       toast({
         title: "Notifications Enabled!",
-        description: "You'll now receive updates from Campus Connect.",
+        description: "You'll now receive updates.",
       });
 
-      // Send a test notification after 5 seconds
-      console.log('[Notifications] Sending test notification in 5 seconds...');
       setTimeout(() => {
         sendPushNotification({
           userId: dbUser.uid,
           title: "Welcome to Campus Connect!",
-          body: "Notifications are now enabled. You're all set!",
+          body: "Notifications are now enabled.",
         });
       }, 5000);
   
     } catch (error: any) {
-      console.error('[Notifications] Failed to subscribe to push notifications:', error);
       toast({
         title: "Subscription Failed",
-        description: error.message || "Could not enable notifications. Please try again.",
+        description: error.message || "Could not enable notifications.",
         variant: "destructive",
       });
     }
@@ -202,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const isPublicProfileRoute = /^\/profile\/[a-zA-Z0-9]+$/.test(pathname);
     const isSearchRoute = pathname === '/search';
+    const isContributeRoute = pathname === '/contribute';
 
     if (user) {
       if (isProfileComplete === false && !isProfileEditRoute) {
@@ -210,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/feed');
       }
     } else {
-      if (!isPublicRoute && !isPublicProfileRoute && pathname !== '/friends' && !pathname.startsWith('/messages') && !isSearchRoute && pathname !== '/contribute') {
+      if (!isPublicRoute && !isPublicProfileRoute && !pathname.startsWith('/messages') && !isSearchRoute && !isContributeRoute) {
         router.push('/');
       }
     }
@@ -222,7 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error('Sign-in error:', error);
       toast({
         title: 'Authentication Error',
         description: error.message,
@@ -244,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount, friendRequestCount }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, isProfileComplete, signInWithGitHub, signInWithGoogle, signOut, requestNotificationPermission, unreadMessagesCount, friendRequestCount, refreshDbUser }}>
       {children}
     </AuthContext.Provider>
   );
