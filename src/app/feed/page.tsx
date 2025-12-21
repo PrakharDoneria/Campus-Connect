@@ -90,7 +90,11 @@ export default function FeedPage() {
   const fetchFeed = useCallback(async (pageNum: number) => {
     setLoadingMore(true);
     try {
-        const newItems = await getFeedItems({ page: pageNum, limit: 10 });
+        let newItems = await getFeedItems({ page: pageNum, limit: 10 });
+        if (dbUser?.blockedUsers) {
+          const blockedUids = new Set(dbUser.blockedUsers);
+          newItems = newItems.filter(item => !blockedUids.has(item.author.uid));
+        }
         if (newItems.length > 0) {
             setFeedItems(prev => pageNum === 1 ? newItems : [...prev, ...newItems]);
         } else {
@@ -101,7 +105,7 @@ export default function FeedPage() {
     } finally {
         setLoadingMore(false);
     }
-  }, []);
+  }, [dbUser]);
   
   const fetchForYouFeed = useCallback(async () => {
     if (!dbUser || !dbUser.joinedCircles || dbUser.joinedCircles.length === 0) {
@@ -109,7 +113,11 @@ export default function FeedPage() {
       return;
     }
     try {
-      const items = await getPostsForUserFeed(dbUser.joinedCircles);
+      let items = await getPostsForUserFeed(dbUser.joinedCircles);
+      if (dbUser?.blockedUsers) {
+        const blockedUids = new Set(dbUser.blockedUsers);
+        items = items.filter(item => !blockedUids.has(item.author.uid));
+      }
       setForYouItems(items);
     } catch (error) {
       console.error("Failed to fetch 'For You' feed:", error);

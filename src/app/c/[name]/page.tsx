@@ -47,7 +47,14 @@ export default function CircleFeedPage() {
         }
 
         setCircle(fetchedCircle);
-        setPosts(fetchedPosts);
+        // Filter posts from blocked users
+        if (dbUser?.blockedUsers) {
+          const blockedUids = new Set(dbUser.blockedUsers);
+          const filteredPosts = fetchedPosts.filter(post => !blockedUids.has(post.author.uid));
+          setPosts(filteredPosts);
+        } else {
+          setPosts(fetchedPosts);
+        }
         setMembers(fetchedMembers);
       } catch (error) {
         console.error('Failed to fetch circle data:', error);
@@ -57,7 +64,7 @@ export default function CircleFeedPage() {
       }
     }
     fetchData();
-  }, [name]);
+  }, [name, dbUser]);
   
   const handlePostCreated = (newPost: IPost) => {
     if (newPost.circle === name) {
