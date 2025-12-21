@@ -22,9 +22,7 @@ export default function MessagesClientLayout({
         <div className="grid flex-1 grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border">
             {isMobile ? (
               // On mobile, show list if no chat is open, otherwise show the chat window
-              <Suspense fallback={<div>Loading...</div>}>
-                {hasChatOpen ? children : list}
-              </Suspense>
+              hasChatOpen ? children : list
             ) : (
               // On desktop, always render the list and the active child (chat or default message).
               <>

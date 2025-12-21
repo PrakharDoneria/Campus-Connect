@@ -14,15 +14,16 @@ import { IUser, IMessage } from '@/types';
 import Link from 'next/link';
 import { Shimmer } from '@/components/common/Shimmer';
 import { cn } from '@/lib/utils';
-import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, limit, or } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
-interface ConversationWithLastMessage extends IUser {
+interface ConversationWithDetails extends IUser {
   lastMessage: IMessage | null;
+  conversationId: string;
 }
 
 export default function MessagesPage() {
@@ -30,7 +31,7 @@ export default function MessagesPage() {
   const { toast } = useToast();
   const pathname = usePathname();
   
-  const [conversations, setConversations] = useState<ConversationWithLastMessage[]>([]);
+  const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -38,73 +39,81 @@ export default function MessagesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!dbUser) return;
+    if (!dbUser || !dbUser.friends || dbUser.friends.length === 0) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
 
-    let unsubscribers: (() => void)[] = [];
-
-    const fetchConversations = async () => {
-        setLoading(true);
-        const friendUsers = await getUsers(dbUser.friends);
+    let unsubscribe: (() => void) | null = null;
+    
+    const setupListener = async () => {
+        const friendDetails = await getUsers(dbUser.friends);
+        const friendMap = new Map(friendDetails.map(f => [f.uid, f]));
         
-        const conversationsWithLastMessagePromises = friendUsers.map(async (friend) => {
-          return new Promise<ConversationWithLastMessage>((resolve) => {
-            const conversationId = [dbUser.uid, friend.uid].sort().join('_');
-            const messagesCollection = collection(firestore, 'messages');
-            const q = query(
-              messagesCollection,
-              where('conversationId', '==', conversationId),
-              orderBy('createdAt', 'desc'),
-              limit(1)
-            );
-    
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-              const lastMessage = snapshot.empty
-                ? null
-                : {
-                    _id: snapshot.docs[0].id,
-                    ...snapshot.docs[0].data(),
-                    createdAt: snapshot.docs[0].data().createdAt?.toDate() ?? new Date(),
-                  } as IMessage;
-    
-              setConversations(prev => {
-                const existingConvo = prev.find(c => c.uid === friend.uid);
-                let newConversations;
-                if (existingConvo) {
-                  newConversations = prev.map(c =>
-                    c.uid === friend.uid ? { ...c, lastMessage } : c
-                  );
-                } else {
-                  newConversations = [...prev, { ...friend, lastMessage }];
-                }
-                
-                newConversations.sort((a, b) => {
-                    const dateA = a.lastMessage?.createdAt ?? 0;
-                    const dateB = b.lastMessage?.createdAt ?? 0;
-                    return new Date(dateB).getTime() - new Date(dateA).getTime();
-                });
-
-                return newConversations;
-              });
-              resolve({ ...friend, lastMessage });
-            }, (error) => {
-              console.warn(`Error fetching last message for ${friend.name}. This may be due to missing Firestore indexes. The app will function but conversation ordering may not be real-time.`, error.message);
-              resolve({ ...friend, lastMessage: null });
-            });
-            unsubscribers.push(unsubscribe);
-          });
+        const conversationIds = dbUser.friends.map(friendUid => {
+            return [dbUser.uid, friendUid].sort().join('_');
         });
 
-        await Promise.all(conversationsWithLastMessagePromises);
-        
-        setLoading(false);
+        const messagesCollection = collection(firestore, 'messages');
+        const q = query(
+            messagesCollection,
+            where('conversationId', 'in', conversationIds)
+        );
+
+        unsubscribe = onSnapshot(q, (snapshot) => {
+            const messagesByConvo: Record<string, IMessage[]> = {};
+            snapshot.forEach(doc => {
+                const msg = { 
+                    _id: doc.id,
+                    ...doc.data(),
+                    createdAt: doc.data().createdAt?.toDate() ?? new Date(),
+                } as IMessage;
+                if (!messagesByConvo[msg.conversationId]) {
+                    messagesByConvo[msg.conversationId] = [];
+                }
+                messagesByConvo[msg.conversationId].push(msg);
+            });
+
+            const updatedConversations: ConversationWithDetails[] = [];
+            for (const friendUid of dbUser.friends) {
+                const friend = friendMap.get(friendUid);
+                if (friend) {
+                    const convoId = [dbUser.uid, friendUid].sort().join('_');
+                    const convoMessages = messagesByConvo[convoId] || [];
+                    convoMessages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                    
+                    updatedConversations.push({
+                        ...friend,
+                        conversationId: convoId,
+                        lastMessage: convoMessages[0] || null,
+                    });
+                }
+            }
+            
+            updatedConversations.sort((a, b) => {
+                const dateA = a.lastMessage?.createdAt ?? 0;
+                const dateB = b.lastMessage?.createdAt ?? 0;
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+            });
+
+            setConversations(updatedConversations);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error with messages snapshot:", error);
+            toast({ title: 'Error', description: 'Could not sync messages.', variant: 'destructive'});
+            setLoading(false);
+        });
     };
 
-    fetchConversations();
-    
+    setupListener();
+
     return () => {
-        unsubscribers.forEach(unsub => unsub());
+        if (unsubscribe) {
+            unsubscribe();
+        }
     };
-}, [dbUser]);
+}, [dbUser, toast]);
 
 
     const handleDeleteConversation = async () => {
@@ -113,7 +122,7 @@ export default function MessagesPage() {
         setIsDeleting(true);
         try {
             await deleteConversation(conversationToDelete);
-            setConversations(prev => prev.filter(c => [c.uid, dbUser.uid].sort().join('_') !== conversationToDelete));
+            setConversations(prev => prev.filter(c => c.conversationId !== conversationToDelete));
             toast({ title: 'Success', description: 'Conversation deleted.' });
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to delete conversation.', variant: 'destructive' });
@@ -149,14 +158,13 @@ export default function MessagesPage() {
           <div className="flex-1 overflow-y-auto">
             <nav className="flex flex-col">
               {filteredConversations.map(convoUser => {
-                const conversationId = dbUser ? [dbUser.uid, convoUser.uid].sort().join('_') : '';
-                const isActive = pathname === `/messages/${conversationId}`;
+                const isActive = pathname === `/messages/${convoUser.conversationId}`;
                 const isUnread = convoUser.lastMessage?.read === false && convoUser.lastMessage?.to === dbUser?.uid;
 
                 return (
                 <div key={convoUser.uid} className="group relative">
                     <Link
-                    href={`/messages/${conversationId}`}
+                    href={`/messages/${convoUser.conversationId}`}
                     className={cn(
                         "flex items-center gap-3 p-4 text-muted-foreground transition-all border-b",
                         isActive ? "bg-muted/50" : "hover:bg-muted/50",
@@ -188,7 +196,7 @@ export default function MessagesPage() {
                         onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            setConversationToDelete(conversationId);
+                            setConversationToDelete(convoUser.conversationId);
                             setShowDeleteAlert(true);
                         }}
                     >
@@ -196,7 +204,7 @@ export default function MessagesPage() {
                     </Button>
                 </div>
               )})}
-               {conversations.length === 0 && (
+               {conversations.length === 0 && !loading && (
                 <p className="p-4 text-center text-sm text-muted-foreground">
                     No conversations yet. Go make some friends!
                 </p>
