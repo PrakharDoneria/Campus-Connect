@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Heart, Loader2, MoreHorizontal, Send, ExternalLink, Share2 } from 'lucide-react';
+import { MessageCircle, Heart, Loader2, MoreHorizontal, Send, ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IPost, IComment } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { toggleLikePost, updatePost, deletePost } from '@/lib/actions/post.actions';
-import { createComment, getCommentsByPost } from '@/lib/actions/comment.actions';
+import { createComment, getCommentsByPost, deleteComment } from '@/lib/actions/comment.actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,6 +67,7 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsFetched, setCommentsFetched] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeletingComment, setIsDeletingComment] = useState<string | null>(null);
 
   const timestamp = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const editedTimestamp = post.editedAt ? formatDistanceToNow(new Date(post.editedAt), { addSuffix: true }) : null;
@@ -166,7 +167,10 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
         setNewComment('');
         toast({ title: 'Comment posted!' });
          if (onPostUpdate) {
-            onPostUpdate({ ...post, comments: [...post.comments, createdComment._id.toString()] });
+            const updatedComments = Array.isArray(post.comments) 
+              ? [...post.comments, createdComment._id.toString()]
+              : [createdComment._id.toString()];
+            onPostUpdate({ ...post, comments: updatedComments });
         }
     } catch (error) {
         toast({ title: 'Error', description: 'Could not post comment.', variant: 'destructive' });
@@ -175,6 +179,23 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
     }
   };
   
+    const handleCommentDelete = async (commentId: string) => {
+        setIsDeletingComment(commentId);
+        try {
+            await deleteComment(commentId, post._id.toString());
+            setComments(prev => prev.filter(c => c._id.toString() !== commentId));
+            if (onPostUpdate) {
+                const updatedComments = post.comments.filter(id => id.toString() !== commentId);
+                onPostUpdate({ ...post, comments: updatedComments });
+            }
+            toast({ title: 'Comment deleted' });
+        } catch (error) {
+            toast({ title: 'Error', description: 'Could not delete comment.', variant: 'destructive' });
+        } finally {
+            setIsDeletingComment(null);
+        }
+    };
+
   const handleShare = () => {
     const postUrl = `${window.location.origin}/post/${post._id}`;
     navigator.clipboard.writeText(postUrl);
@@ -321,25 +342,43 @@ export function PostCard({ post, isGuest = false, onPostUpdate, onPostDelete }: 
                 </div>
             ) : comments.length > 0 ? (
                 <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
-                {comments.map(comment => (
-                    <div key={comment._id.toString()} className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
-                            <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 text-sm bg-muted rounded-lg p-2">
-                            <div className="flex items-baseline gap-2">
-                                <Link href={`/profile/${comment.author.uid}`} className="font-semibold hover:underline">
-                                    {comment.author.name}
-                                </Link>
-                                <span className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                                </span>
+                {comments.map(comment => {
+                    const isCommentAuthor = dbUser?.uid === comment.author.uid;
+                    const commentId = comment._id.toString();
+                    return (
+                        <div key={commentId} className="group flex items-start gap-3">
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
+                                <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 text-sm bg-muted rounded-lg p-2">
+                                <div className="flex items-baseline gap-2">
+                                    <Link href={`/profile/${comment.author.uid}`} className="font-semibold hover:underline">
+                                        {comment.author.name}
+                                    </Link>
+                                    <span className="text-xs text-muted-foreground">
+                                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                    </span>
+                                </div>
+                                <p>{comment.content}</p>
                             </div>
-                            <p>{comment.content}</p>
+                            {isCommentAuthor && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                                    disabled={isDeletingComment === commentId}
+                                    onClick={() => handleCommentDelete(commentId)}
+                                >
+                                    {isDeletingComment === commentId
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : <Trash2 className="h-4 w-4 text-destructive" />
+                                    }
+                                </Button>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
                 </div>
             ) : (
                 <p className="text-center text-sm text-muted-foreground py-4">No comments yet. Be the first to comment!</p>

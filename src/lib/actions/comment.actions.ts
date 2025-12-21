@@ -44,24 +44,12 @@ export async function createComment(postId: string, content: string, user: IUser
     throw new Error('Failed to create the comment.');
   }
   
-  const newCommentId = result.insertedId.toString();
+  const newCommentId = result.insertedId;
 
-  // Atomically update the post's comments array, fixing it if it's not an array
+  // Atomically update the post's comments array
   await postsCollection.updateOne(
     { _id: new ObjectId(postId) },
-    [
-        { 
-            $set: { 
-                comments: {
-                    $cond: {
-                        if: { $isArray: "$comments" },
-                        then: { $concatArrays: [ "$comments", [newCommentId] ] },
-                        else: [newCommentId]
-                    }
-                }
-            }
-        }
-    ]
+    { $push: { comments: newCommentId } }
   );
 
   // Send notification but don't let it block the response
@@ -101,4 +89,35 @@ export async function getCommentsByPost(postId: string): Promise<IComment[]> {
         ...comment,
         _id: comment._id.toString(),
     })) as IComment[];
+}
+
+export async function deleteComment(commentId: string, postId: string): Promise<void> {
+  const commentObjectId = new ObjectId(commentId);
+  const postObjectId = new ObjectId(postId);
+
+  const commentsCollection = await getCommentsCollection();
+  const postsCollection = await getPostsCollection();
+
+  // Start a transaction
+  const client = await clientPromise;
+  const session = client.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      // 1. Delete the comment itself
+      const deleteResult = await commentsCollection.deleteOne({ _id: commentObjectId }, { session });
+      if (deleteResult.deletedCount === 0) {
+        throw new Error("Comment not found or could not be deleted.");
+      }
+
+      // 2. Pull the comment reference from the post's comments array
+      await postsCollection.updateOne(
+        { _id: postObjectId },
+        { $pull: { comments: commentObjectId } },
+        { session }
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 }
