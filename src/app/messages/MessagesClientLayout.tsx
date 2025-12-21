@@ -18,8 +18,8 @@ export default function MessagesClientLayout({
   const hasChatOpen = !!params.id;
 
   return (
-    <div className="container mx-auto max-w-7xl h-[calc(100vh-64px)] md:h-[calc(100vh-81px)]">
-        <div className="grid h-full grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border">
+    <div className="container mx-auto max-w-7xl flex-1 flex flex-col">
+        <div className="grid flex-1 grid-cols-1 md:grid-cols-3 lg:grid-cols-4 border">
             {isMobile ? (
               // On mobile, show list if no chat is open, otherwise show the chat window
               <Suspense fallback={<div>Loading...</div>}>
@@ -29,7 +29,7 @@ export default function MessagesClientLayout({
               // On desktop, always render the list and the active child (chat or default message).
               <>
                 {list}
-                <div className="md:col-span-2 lg:col-span-3">
+                <div className="md:col-span-2 lg:col-span-3 flex flex-col">
                     {children}
                 </div>
               </>

@@ -38,9 +38,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showHeader = showHeaderRoutes.includes(pathname);
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-col min-h-screen">
       {showHeader && <LandingHeader />}
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1 flex flex-col pb-16 md:pb-0">
         {children}
       </main>
       {showMobileNav && <MobileNavBar />}
