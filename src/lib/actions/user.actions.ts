@@ -253,6 +253,13 @@ export async function rejectFriendRequest(userUid: string, fromUid: string): Pro
   await users.updateOne({ uid: fromUid }, { $pull: { friendRequestsSent: userUid } });
 }
 
+export async function withdrawFriendRequest(fromUid: string, toUid: string): Promise<void> {
+  const users = await getUsersCollection();
+  // This is functionally the same as rejecting, but initiated by the sender.
+  await users.updateOne({ uid: fromUid }, { $pull: { friendRequestsSent: toUid } });
+  await users.updateOne({ uid: toUid }, { $pull: { friendRequestsReceived: fromUid } });
+}
+
 export async function removeFriend(userUid: string, friendUid: string): Promise<void> {
     const users = await getUsersCollection();
     // Remove from both users' friends lists

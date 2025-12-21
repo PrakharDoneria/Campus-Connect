@@ -3,14 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { getUser, sendFriendRequest, getUsers, blockUser, unblockUser } from '@/lib/actions/user.actions';
+import { getUser, sendFriendRequest, getUsers, blockUser, unblockUser, withdrawFriendRequest } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook, Share2, ShieldCheck } from 'lucide-react';
+import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook, Share2, ShieldCheck, UserMinus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -112,8 +112,10 @@ export default function UserProfilePage() {
       await sendFriendRequest(dbUser.uid, user.uid);
       toast({ title: "Request Sent!", description: `Friend request sent to ${user.name}. They'll be so thrilled.` });
        // Manually update the state to give instant feedback
-      const updatedUser = { ...user, friendRequestsReceived: [...(user.friendRequestsReceived || []), dbUser.uid] };
-      setUser(updatedUser);
+      if (dbUser) {
+        dbUser.friendRequestsSent.push(user.uid);
+        setUser(prev => prev ? {...prev} : null); // Force re-render
+      }
       router.refresh();
     } catch (error) {
       toast({ title: "Error", description: "Could not send friend request.", variant: "destructive" });
@@ -122,13 +124,31 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleWithdrawRequest = async () => {
+    if (!dbUser || !user) return;
+    setIsSubmitting(true);
+    try {
+      await withdrawFriendRequest(dbUser.uid, user.uid);
+      toast({ title: "Request Withdrawn" });
+      if (dbUser) {
+        dbUser.friendRequestsSent = dbUser.friendRequestsSent.filter(uid => uid !== user.uid);
+        setUser(prev => prev ? {...prev} : null); // Force re-render
+      }
+      router.refresh();
+    } catch (error) {
+      toast({ title: "Error", description: "Could not withdraw friend request.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   const handleBlockUser = async () => {
     if (!dbUser || !user) return;
     setIsSubmitting(true);
     try {
       await blockUser(dbUser.uid, user.uid);
       toast({ title: "User Blocked", description: `You have blocked ${user.name}.`, variant: "destructive" });
-      router.refresh();
+      router.push('/feed'); // Redirect after blocking
     } catch (error) {
       toast({ title: "Error", description: "Could not block user.", variant: "destructive" });
     } finally {
@@ -142,6 +162,10 @@ export default function UserProfilePage() {
     try {
       await unblockUser(dbUser.uid, user.uid);
       toast({ title: "User Unblocked", description: `You have unblocked ${user.name}.` });
+      if (dbUser) {
+        dbUser.blockedUsers = dbUser.blockedUsers?.filter(uid => uid !== user.uid);
+        setUser(prev => prev ? {...prev} : null); // Force re-render
+      }
       router.refresh();
     } catch (error) {
       toast({ title: "Error", description: "Could not unblock user.", variant: "destructive" });
@@ -182,7 +206,7 @@ export default function UserProfilePage() {
         case 'friends':
             return <Button disabled variant="secondary"><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
         case 'sent':
-            return <Button disabled variant="secondary">Request Sent</Button>;
+            return <Button variant="outline" onClick={handleWithdrawRequest}><UserMinus className="mr-2 h-4 w-4" />Withdraw Request</Button>;
         case 'received':
             return <Button asChild><Link href="/friends">Respond to Request</Link></Button>;
         default:
