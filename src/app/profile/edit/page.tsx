@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { auth } from '@/lib/firebase';
 
 const profileSchema = z.object({
   university: z.string().min(1, 'University is required'),
@@ -283,7 +284,7 @@ export default function ProfileEditPage() {
       if (!dbUser?.university) { // This is initial setup
         window.location.href = '/feed';
       } else {
-        router.push(`/profile/${dbUser?._id}`);
+        router.push(`/profile/${dbUser?.uid}`);
       }
 
     } catch (error) {
@@ -294,14 +295,27 @@ export default function ProfileEditPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!user) return;
+    if (!user || !auth.currentUser) return;
     setIsDeleting(true);
     try {
+        // First, trigger the server action to delete all MongoDB data
         await deleteUserAccount(user.uid);
+        
+        // Then, delete the Firebase user. This must happen after DB cleanup.
+        await auth.currentUser.delete();
+
         toast({ title: "Account Deleted", description: "Your account has been permanently deleted." });
-        await signOut();
-    } catch(error) {
-        toast({ title: "Error", description: "Could not delete your account.", variant: "destructive" });
+        await signOut(); // This will clear client-side state and redirect
+    } catch(error: any) {
+        console.error("Account deletion error:", error);
+        toast({ title: "Error", description: error.message || "Could not delete your account.", variant: "destructive" });
+        if (error.code === 'auth/requires-recent-login') {
+            toast({
+                title: "Re-authentication Required",
+                description: "Please sign out and sign back in to delete your account.",
+                variant: "destructive",
+            });
+        }
         setIsDeleting(false);
     }
   }

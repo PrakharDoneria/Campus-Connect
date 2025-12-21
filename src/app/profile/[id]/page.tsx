@@ -60,12 +60,19 @@ export default function UserProfilePage() {
       if (!id) return;
       try {
         setLoading(true);
-        // It could be a UID or a Mongo _id, getUser handles both
         const fetchedUser = await getUser(id);
+        
         if (!fetchedUser) {
           notFound();
           return;
         }
+
+        // Block checks
+        if (dbUser?.blockedUsers?.includes(fetchedUser.uid) || fetchedUser.blockedUsers?.includes(dbUser.uid)) {
+            notFound();
+            return;
+        }
+        
         setUser(fetchedUser);
 
         const [userPosts, userFriends] = await Promise.all([
@@ -85,7 +92,7 @@ export default function UserProfilePage() {
       }
     }
     fetchData();
-  }, [id, toast]);
+  }, [id, toast, dbUser]);
   
   const handlePostUpdate = (updatedPost: IPost) => {
     setPosts(prevPosts => prevPosts.map(p => p._id === updatedPost._id ? updatedPost : p));
@@ -178,7 +185,7 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!user || dbUser?.blockedUsers?.includes(user.uid)) {
+  if (!user) {
     return notFound();
   }
 

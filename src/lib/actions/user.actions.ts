@@ -5,6 +5,9 @@ import clientPromise from '@/lib/mongodb';
 import { IMessage, IUser, Gender } from '@/types';
 import { Collection, ObjectId } from 'mongodb';
 import { joinCircle } from './circle.actions';
+import { auth } from '@/lib/firebase';
+import { deleteUser as deleteFirebaseUser } from 'firebase/auth';
+import { sendPushNotification } from './notification.actions';
 
 async function getDb() {
     const client = await clientPromise;
@@ -214,13 +217,26 @@ export async function getRandomUsers({
 export async function sendFriendRequest(fromUid: string, toUid: string): Promise<void> {
   const users = await getUsersCollection();
   const fromUser = await users.findOne({ uid: fromUid });
+  const toUser = await users.findOne({ uid: toUid });
   
-  if (fromUid === toUid || fromUser?.friends?.includes(toUid)) {
+  if (!fromUser || !toUser) {
+    throw new Error("User not found.");
+  }
+  
+  if (fromUid === toUid || fromUser.friends?.includes(toUid)) {
       throw new Error("Invalid friend request.");
   }
 
   await users.updateOne({ uid: fromUid }, { $addToSet: { friendRequestsSent: toUid } });
   await users.updateOne({ uid: toUid }, { $addToSet: { friendRequestsReceived: fromUid } });
+
+  // Send push notification
+  await sendPushNotification({
+      userId: toUid,
+      title: 'New Friend Request!',
+      body: `${fromUser.name} wants to connect with you.`,
+      url: '/friends',
+  });
 }
 
 export async function acceptFriendRequest(userUid: string, fromUid: string): Promise<void> {
@@ -295,7 +311,9 @@ export async function deleteUserAccount(uid: string): Promise<void> {
     throw new Error('User not found.');
   }
 
-  // Use a transaction for atomicity
+  // Firebase Auth user must be deleted from the client-side, which is handled there.
+  // This server action will handle all database cleanup.
+  
   const client = await clientPromise;
   const session = client.startSession();
 
@@ -314,20 +332,22 @@ export async function deleteUserAccount(uid: string): Promise<void> {
       await circlesCollection.deleteMany({ creatorUid: uid }, { session });
 
       // 5. Remove user's likes from all posts
-      await postsCollection.updateMany({ likes: uid }, { $pull: { likes: uid } }, { session });
+      await postsCollection.updateMany({}, { $pull: { likes: uid } }, { session });
 
       // 6. Remove user's comments from all posts' comment arrays
-      // This is more complex and might be slow. A simpler approach is to just delete the comments.
-      // The frontend should be resilient to missing comment documents.
+      const userCommentIds = await commentsCollection.find({ 'author.uid': uid }).project({ _id: 1 }).toArray();
+      const commentIds = userCommentIds.map(c => c._id);
+      await postsCollection.updateMany({}, { $pull: { comments: { $in: commentIds } } }, { session });
 
-      // 7. Remove from friends lists and requests
+      // 7. Remove from friends lists and requests of other users
       await usersCollection.updateMany(
-        { $or: [{ friends: uid }, { friendRequestsSent: uid }, { friendRequestsReceived: uid }] },
+        {},
         {
           $pull: {
             friends: uid,
             friendRequestsSent: uid,
             friendRequestsReceived: uid,
+            blockedUsers: uid,
           },
         },
         { session }
@@ -337,6 +357,7 @@ export async function deleteUserAccount(uid: string): Promise<void> {
     await session.endSession();
   }
 }
+
 
 export async function inferUserInteractionPreference(uid: string): Promise<Gender | 'everyone'> {
   const currentUser = await getUser(uid);
