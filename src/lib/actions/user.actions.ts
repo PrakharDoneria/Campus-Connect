@@ -285,6 +285,12 @@ export async function blockUser(blockerUid: string, blockedUid: string): Promise
     await rejectFriendRequest(blockedUid, blockerUid);
 }
 
+export async function unblockUser(blockerUid: string, blockedUid: string): Promise<void> {
+    const users = await getUsersCollection();
+    // Remove blocked user from blocker's list
+    await users.updateOne({ uid: blockerUid }, { $pull: { blockedUsers: blockedUid } });
+}
+
 export async function searchUsersByName(query: string, currentUserId: string): Promise<IUser[]> {
     const usersCollection = await getUsersCollection();
     // Use a case-insensitive regex for partial matching

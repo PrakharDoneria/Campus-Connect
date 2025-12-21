@@ -3,14 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { notFound, useRouter, useParams } from 'next/navigation';
-import { getUser, sendFriendRequest, getUsers, blockUser } from '@/lib/actions/user.actions';
+import { getUser, sendFriendRequest, getUsers, blockUser, unblockUser } from '@/lib/actions/user.actions';
 import { getPostsByAuthor } from '@/lib/actions/post.actions';
 import { IUser, IPost } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shimmer } from '@/components/common/Shimmer';
-import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook, Share2 } from 'lucide-react';
+import { Building, GraduationCap, MessageSquare, UserPlus, Edit, Loader2, UserCheck, MoreVertical, ShieldBan, Github, Linkedin, Facebook, Share2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,7 +68,7 @@ export default function UserProfilePage() {
         }
 
         // Block checks
-        if (dbUser?.blockedUsers?.includes(fetchedUser.uid) || fetchedUser.blockedUsers?.includes(dbUser.uid)) {
+        if (fetchedUser.blockedUsers?.includes(dbUser?.uid)) {
             notFound();
             return;
         }
@@ -99,7 +99,7 @@ export default function UserProfilePage() {
   };
   
   const handlePostDelete = (postId: string) => {
-    setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
+    setPosts(prevPosts => prevPosts.filter(p => p._id.toString() !== postId));
   };
 
 
@@ -128,9 +128,24 @@ export default function UserProfilePage() {
     try {
       await blockUser(dbUser.uid, user.uid);
       toast({ title: "User Blocked", description: `You have blocked ${user.name}.`, variant: "destructive" });
-      router.push('/feed'); // Redirect after blocking
+      router.refresh();
     } catch (error) {
       toast({ title: "Error", description: "Could not block user.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+  
+  const handleUnblockUser = async () => {
+    if (!dbUser || !user) return;
+    setIsSubmitting(true);
+    try {
+      await unblockUser(dbUser.uid, user.uid);
+      toast({ title: "User Unblocked", description: `You have unblocked ${user.name}.` });
+      router.refresh();
+    } catch (error) {
+      toast({ title: "Error", description: "Could not unblock user.", variant: "destructive" });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -147,7 +162,7 @@ export default function UserProfilePage() {
 
   const getFriendStatus = () => {
     if (authLoading || !dbUser || !user) return null;
-    if (dbUser.blockedUsers?.includes(user.uid)) return 'blocked';
+    if (dbUser.blockedUsers?.includes(user.uid)) return 'i_blocked';
     if (dbUser.friends?.includes(user.uid)) return 'friends';
     if (dbUser.friendRequestsSent?.includes(user.uid)) return 'sent';
     if (user.friendRequestsSent?.includes(dbUser.uid)) return 'received'; // Check if the other user sent a request to me
@@ -162,8 +177,8 @@ export default function UserProfilePage() {
     }
 
     switch (friendStatus) {
-        case 'blocked':
-            return <Button disabled variant="destructive"><ShieldBan className="mr-2 h-4 w-4" /> Blocked</Button>;
+        case 'i_blocked':
+             return <Button variant="destructive" onClick={handleUnblockUser}><ShieldCheck className="mr-2 h-4 w-4" /> Unblock</Button>;
         case 'friends':
             return <Button disabled variant="secondary"><UserCheck className="mr-2 h-4 w-4" /> Friends</Button>;
         case 'sent':
@@ -237,34 +252,43 @@ export default function UserProfilePage() {
             </div>
             <div className="flex w-full sm:w-auto justify-start gap-2 mt-4 sm:ml-auto sm:self-end shrink-0">
               {isOwnProfile ? (
-                <Button asChild variant="outline" className="flex-1 sm:flex-initial">
-                  <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
-                </Button>
+                <>
+                  <Button asChild variant="outline">
+                    <Link href="/profile/edit"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Link>
+                  </Button>
+                  <Button variant="outline" onClick={handleShareProfile}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share
+                  </Button>
+                </>
               ) : (
                 <>
                   {renderFriendButton()}
-                  <Button variant="outline" asChild disabled={friendStatus !== 'friends'} className="flex-1 sm:flex-initial">
-                    <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`} onClick={e => e.stopPropagation()}>
-                      <MessageSquare className="mr-2 h-4 w-4" /> Message
-                    </Link>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={handleShareProfile}>
-                        <Share2 className="mr-2 h-4 w-4" />
-                        Share Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleBlockUser} className="text-destructive">
-                        <ShieldBan className="mr-2 h-4 w-4" />
-                        Block User
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                   {friendStatus !== 'i_blocked' && (
+                    <>
+                    <Button variant="outline" asChild disabled={friendStatus !== 'friends'} className="flex-1 sm:flex-initial">
+                        <Link href={`/messages/${[dbUser?.uid, user.uid].sort().join('_')}`} onClick={e => e.stopPropagation()}>
+                        <MessageSquare className="mr-2 h-4 w-4" /> Message
+                        </Link>
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={handleShareProfile}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Share Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleBlockUser} className="text-destructive">
+                            <ShieldBan className="mr-2 h-4 w-4" />
+                            Block User
+                        </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    </>
+                   )}
                 </>
               )}
             </div>
@@ -272,34 +296,42 @@ export default function UserProfilePage() {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="posts" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
-          <TabsTrigger value="friends">Friends ({friends.length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="posts" className="mt-4">
-            {posts.length > 0 ? (
-                <div className="space-y-4">
-                    {posts.map(post => <PostCard key={post._id.toString()} post={post} isGuest={!currentUser} onPostUpdate={handlePostUpdate} onPostDelete={handlePostDelete} />)}
-                </div>
-            ) : (
-                <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                    <p>This user is a professional lurker. Not a single post in sight.</p>
-                </div>
-            )}
-        </TabsContent>
-        <TabsContent value="friends" className="mt-4">
-             {friends.length > 0 ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {friends.map(friend => <FriendCard key={friend.uid} user={friend} />)}
-                </div>
-            ) : (
-                <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
-                    <p>A lone wolf! This user hasn't added any friends yet.</p>
-                </div>
-            )}
-        </TabsContent>
-      </Tabs>
+      {friendStatus === 'i_blocked' ? (
+        <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card mt-8">
+            <ShieldBan className="h-12 w-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-bold">You have blocked this user</h2>
+            <p>Unblock them to see their posts and friends.</p>
+        </div>
+      ) : (
+        <Tabs defaultValue="posts" className="mt-8">
+            <TabsList>
+            <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+            <TabsTrigger value="friends">Friends ({friends.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="posts" className="mt-4">
+                {posts.length > 0 ? (
+                    <div className="space-y-4">
+                        {posts.map(post => <PostCard key={post._id.toString()} post={post} isGuest={!currentUser} onPostUpdate={handlePostUpdate} onPostDelete={handlePostDelete} />)}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
+                        <p>This user is a professional lurker. Not a single post in sight.</p>
+                    </div>
+                )}
+            </TabsContent>
+            <TabsContent value="friends" className="mt-4">
+                {friends.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {friends.map(friend => <FriendCard key={friend.uid} user={friend} />)}
+                    </div>
+                ) : (
+                    <div className="text-center py-16 text-muted-foreground border rounded-lg bg-card">
+                        <p>A lone wolf! This user hasn't added any friends yet.</p>
+                    </div>
+                )}
+            </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
