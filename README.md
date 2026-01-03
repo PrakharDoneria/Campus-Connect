@@ -2,6 +2,9 @@
 
 Campus Connect is a localized, open-source social network for college students. Built with Next.js, Firebase, and MongoDB, it aims to connect students on the same campus by leveraging geolocation features.
 
+# CommitAds
+[![CommitAds](https://commitads.netlify.app/api/serve/grvTpDHZzEekXho29gSCI10hb8f2/Y5CVhMx2hVBsQQIOqkXT)](https://commitads.netlify.app/api/serve/grvTpDHZzEekXho29gSCI10hb8f2/Y5CVhMx2hVBsQQIOqkXT?action=click)
+
 ## Core Features
 
 - **Student Verification**: Signup is restricted to users with a valid university email address (e.g., `.edu`).
