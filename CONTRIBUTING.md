@@ -9,7 +9,7 @@ We welcome contributions of all kinds, from bug fixes and feature development to
 ### Getting Started
 
 1.  **Fork the repository**: Create your own copy of the project to work on.
-2.  **Clone your fork**: `git clone https://github.com/your-username/campus-connect.git`
+2.  **Clone your fork**: `git clone https://github.com/your-username/Campus-Connect.git`
 3.  **Create a branch**: Make a new branch for your changes (`git checkout -b feature/your-awesome-feature`).
 4.  **Make your changes**: Write your code and tests. See our tech stack in the `README.md`.
 5.  **Commit your changes**: Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for your commit messages. This helps us automate changelogs.
@@ -20,7 +20,6 @@ We welcome contributions of all kinds, from bug fixes and feature development to
 
 ### Code Style
 
-- We use Prettier for automatic code formatting. Run `npm run format` before committing to ensure your code is styled correctly.
 - We follow standard TypeScript and React best practices. Use functional components with hooks.
 - Leverage the existing `shadcn/ui` components for building UI elements to maintain consistency.
 - Write clear, commented (where necessary), and modular code.
