@@ -9,7 +9,7 @@ Campus Connect is a localized, open-source social network for college students. 
 
 ## CommitAds
 
-[![CommitAds](https://commitads.netlify.app/api/serve/ofkiVjsVlOdIbbac7uHAItIhQEA2/M2q04kjLqXMQCi5a68kT)](https://commitads.netlify.app/api/serve/ofkiVjsVlOdIbbac7uHAItIhQEA2/M2q04kjLqXMQCi5a68kT/check)
+[![Sponsored Ad by CommitAds](https://commitads.netlify.app/api/serve/ofkiVjsVlOdIbbac7uHAItIhQEA2/M2q04kjLqXMQCi5a68kT)](https://commitads.netlify.app/api/serve/ofkiVjsVlOdIbbac7uHAItIhQEA2/M2q04kjLqXMQCi5a68kT/check)
 
 ## Core Features
 
